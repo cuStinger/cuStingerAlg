@@ -54,7 +54,7 @@ int main(const int argc, char *argv[]){
 	    readGraphSNAP(argv[1],&off,&adj,&nv,&ne);
 	}
 	else if(isMarket){
-		readGraphMatrixMarket(argv[1],&off,&adj,&nv,&ne);
+		readGraphMatrixMarket(argv[1],&off,&adj,&nv,&ne,(isRmat)?false:true);
 	}
 	else{ 
 		cout << "Unknown graph type" << endl;
@@ -88,7 +88,7 @@ int main(const int argc, char *argv[]){
 	scc.Init(custing);
 	scc.Reset();
 	start_clock(ce_start, ce_stop);
-	scc.Run(custing);
+//	scc.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
 	cout << "The number of iterations           : " << scc.GetIterationCount() << endl;
 	cout << "The number of connected-compoents  : " << scc.CountConnectComponents(custing) << endl;
@@ -99,7 +99,7 @@ int main(const int argc, char *argv[]){
 	scc2.Init(custing);
 	scc2.Reset();
 	start_clock(ce_start, ce_stop);
-	scc2.Run(custing);
+ //   scc2.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
 	cout << "The number of iterations           : " << scc2.GetIterationCount() << endl;
 	cout << "The number of connected-compoents  : " << scc2.CountConnectComponents(custing) << endl;
@@ -161,7 +161,7 @@ int main(const int argc, char *argv[]){
 	pr.Reset();
 	pr.setInputParameters(5,0.001);
 	start_clock(ce_start, ce_stop);
-	pr.Run(custing);
+//	pr.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
 	cout << "The number of iterations      : " << pr.getIterationCount() << endl;
 	cout << "Total time for pagerank       : " << totalTime << endl; 
