@@ -65,6 +65,7 @@ cuda_add_library(custingerAlgs
           # src/streaming_triangle_counting/cct_upd.cu
           src/static_page_rank/pr.cu              
           src/load_balance.cu
+          src/bc_streaming/bc.cu
         )
 
 
@@ -77,11 +78,16 @@ cuda_add_executable(cuAlgStCCT
           tests/cct_upd.cpp
            )
 
+cuda_add_executable(bc-cus
+          src/bc_streaming/bc.cpp
+          src/bc_streaming/bc.cu
+      )
 
 cuda_add_executable(cus-alg-tester 
           tests/alg-tester.cu
            )
 
+TARGET_LINK_LIBRARIES(bc-cus custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 
 TARGET_LINK_LIBRARIES(cuAlgCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 TARGET_LINK_LIBRARIES(cuAlgStCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
