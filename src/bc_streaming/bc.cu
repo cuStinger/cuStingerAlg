@@ -27,7 +27,7 @@ using namespace cub;
 
 #include <iostream>
 
-#include "bc.hpp"
+#include "bc_streaming/bc.hpp"
 
 
 __global__ void bc_static_brandes(cuStinger *custing, unsigned long long *sigma,
@@ -37,6 +37,10 @@ __global__ void bc_static_brandes(cuStinger *custing, unsigned long long *sigma,
 		custing, sigma, delta, d, bc_d);
 
 	printf("Doing Nothing\n");
+}
+
+void bcMain(cuStinger& custing, void* func_meta_data) {
+    printf("YOOOOOOO oldMain");
 }
 
 /*
@@ -73,52 +77,52 @@ __global__ void bc_static_brandes(cuStinger *custing, unsigned long long *sigma,
 // 	}
 // }
 
-typedef struct {
-	vertexId_t* queue;
-	length_t queueCurr;
-	length_t queueEnd;
-	vertexId_t* level;
-	vertexId_t currLevel;
-} bcTreeData;
+// typedef struct {
+// 	vertexId_t* queue;
+// 	length_t queueCurr;
+// 	length_t queueEnd;
+// 	vertexId_t* level;
+// 	vertexId_t currLevel;
+// } bcTreeData;
 
-__device__ void bcExpandFrontier(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata) {
-	bcTreeData* bctd = (bcTreeData*)metadata;
-	vertexId_t nextLevel=bctd->currLevel+1;
+// __device__ void bcExpandFrontier(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata) {
+// 	bcTreeData* bctd = (bcTreeData*)metadata;
+// 	vertexId_t nextLevel=bctd->currLevel+1;
 
-	vertexId_t prev = atomicCAS(bctd->level+dst,INT32_MAX,nextLevel);
-	if(prev == INT32_MAX) {
-		length_t prevPos = atomicAdd(&(bctd->queueEnd),1);
-		bctd->queue[prevPos] = dst;
-	}
+// 	vertexId_t prev = atomicCAS(bctd->level+dst,INT32_MAX,nextLevel);
+// 	if(prev == INT32_MAX) {
+// 		length_t prevPos = atomicAdd(&(bctd->queueEnd),1);
+// 		bctd->queue[prevPos] = dst;
+// 	}
 
-	if (bctd->level[dst] == nextLevel) {
-		bctd->sigma[dst] = atomicAdd(&(bctd->sigma[dst]), bctd->sigma[src]);
-	}
-}
+// 	if (bctd->level[dst] == nextLevel) {
+// 		bctd->sigma[dst] = atomicAdd(&(bctd->sigma[dst]), bctd->sigma[src]);
+// 	}
+// }
 
-__device__ cusSubKernel ptrbcExpandFrontier = bcExpandFrontier;
+// __device__ cusSubKernel ptrbcExpandFrontier = bcExpandFrontier;
 
-__device__ void bcExpandFrontierMacro(cuStinger* custing, vertexId_t src, void* metadata){
-	bcTreeData* bd = (bcTreeData*)metadata;
-	vertexId_t nextLevel=bd->currLevel+1;
+// __device__ void bcExpandFrontierMacro(cuStinger* custing, vertexId_t src, void* metadata) {
+// 	bcTreeData* bd = (bcTreeData*)metadata;
+// 	vertexId_t nextLevel=bd->currLevel+1;
 
-	CUSTINGER_FOR_ALL_EDGES_OF_VERTEX_PAR_THREAD_BLOCK_BEGIN(custing, src) 
-		vertexId_t prev = atomicCAS(bd->level+CUSTINGER_EDGE_DEST,INT32_MAX,nextLevel);
-		if(prev==INT32_MAX) {
-			length_t prevPos = atomicAdd(&(bd->queueEnd),1);
-			bd->queue[prevPos] = CUSTINGER_EDGE_DEST;
-		}
-	CUSTINGER_FOR_ALL_EDGES_OF_VERTEX_PAR_THREAD_BLOCK_END()
-}
+// 	CUSTINGER_FOR_ALL_EDGES_OF_VERTEX_PAR_THREAD_BLOCK_BEGIN(custing, src) 
+// 		vertexId_t prev = atomicCAS(bd->level+CUSTINGER_EDGE_DEST,INT32_MAX,nextLevel);
+// 		if(prev==INT32_MAX) {
+// 			length_t prevPos = atomicAdd(&(bd->queueEnd),1);
+// 			bd->queue[prevPos] = CUSTINGER_EDGE_DEST;
+// 		}
+// 	CUSTINGER_FOR_ALL_EDGES_OF_VERTEX_PAR_THREAD_BLOCK_END();
+// }
 
-__device__ cusSubKernel ptrbcExpandFrontierMacro = bcExpandFrontierMacro;
+// __device__ cusSubKernel ptrbcExpandFrontierMacro = bcExpandFrontierMacro;
 
 
-__device__ void setLevelInfinity(cuStinger* custing,vertexId_t src, void* metadata){
-	bcTreeData* bd = (bcTreeData*)metadata;
-	bd->level[src]=INT32_MAX;
-}
-__device__ cusSubKernel ptrSetLevelInfinity = setLevelInfinity;
+// __device__ void setLevelInfinity(cuStinger* custing,vertexId_t src, void* metadata){
+// 	bcTreeData* bd = (bcTreeData*)metadata;
+// 	bd->level[src]=INT32_MAX;
+// }
+// __device__ cusSubKernel ptrSetLevelInfinity = setLevelInfinity;
 
 
 // void bcMain(cuStinger& custing, void* func_meta_data)
@@ -184,10 +188,6 @@ __device__ cusSubKernel ptrSetLevelInfinity = setLevelInfinity;
 // 	freeDeviceArray(hostBfsData.level);
 // }
 
-void oldMain() {
-    printf("YOOOOOOO oldMain");
-}
-
 
 // Adam's Optimized BC GPU Kernel
 /*
@@ -195,163 +195,163 @@ void oldMain() {
 2) edge-based parallelism
 3) use of pitch for d, sigma, and delta
 */
-__global__ void bc_gpu_opt(const cuStinger *custing, int n, int m, float *bc,
-	unsigned long long *__restrict__ sigma, float *__restrict__ delta,
-	int *__restrict__ d, size_t pitch_sigma, size_t pitch_delta,
-	size_t pitch_d, const int start, const int end)
-{
-	printf("Beginning bc_gpu_opt");
+// __global__ void bc_gpu_opt(const cuStinger *custing, int n, int m, float *bc,
+// 	unsigned long long *__restrict__ sigma, float *__restrict__ delta,
+// 	int *__restrict__ d, size_t pitch_sigma, size_t pitch_delta,
+// 	size_t pitch_d, const int start, const int end)
+// {
+// 	printf("Beginning bc_gpu_opt");
 
 	
 
-	for(int i=start+blockIdx.x; i<end; i+=gridDim.x) //Overall i = [0, 1, ..., n-1] (inclusive)
-	{
-		int j = threadIdx.x;
+// 	for(int i=start+blockIdx.x; i<end; i+=gridDim.x) //Overall i = [0, 1, ..., n-1] (inclusive)
+// 	{
+// 		int j = threadIdx.x;
 
-		for(int k=threadIdx.x; k<n; k+=blockDim.x)
-		{
-			int *d_row = (int*)((char*)d + blockIdx.x*pitch_d);
-			unsigned long long *sigma_row = (unsigned long long*)((char*)sigma + blockIdx.x*pitch_sigma);
-			if(k == i) //If its the source node
-			{
-				sigma_row[k] = 1;
-				d_row[k] = 0;
-			}
-			else
-			{
-				sigma_row[k] = 0;
-				d_row[k] = INT_MAX;
-			}
+// 		for(int k=threadIdx.x; k<n; k+=blockDim.x)
+// 		{
+// 			int *d_row = (int*)((char*)d + blockIdx.x*pitch_d);
+// 			unsigned long long *sigma_row = (unsigned long long*)((char*)sigma + blockIdx.x*pitch_sigma);
+// 			if(k == i) //If its the source node
+// 			{
+// 				sigma_row[k] = 1;
+// 				d_row[k] = 0;
+// 			}
+// 			else
+// 			{
+// 				sigma_row[k] = 0;
+// 				d_row[k] = INT_MAX;
+// 			}
 
-			float *delta_row = (float*)((char*)delta + blockIdx.x*pitch_delta);
-			delta_row[k] = 0;
-		}
+// 			float *delta_row = (float*)((char*)delta + blockIdx.x*pitch_delta);
+// 			delta_row[k] = 0;
+// 		}
 		
-		int current_depth = 0;
-		__shared__ bool done;
-		if(j == 0)
-		{
-			done = false;
-		}
-		__syncthreads();
+// 		int current_depth = 0;
+// 		__shared__ bool done;
+// 		if(j == 0)
+// 		{
+// 			done = false;
+// 		}
+// 		__syncthreads();
 
-		while(!done)
-		{
-			__syncthreads();
-			done = true;
-			__syncthreads();
+// 		while(!done)
+// 		{
+// 			__syncthreads();
+// 			done = true;
+// 			__syncthreads();
 
-			for(int k = threadIdx.x; k < 2*m; k += blockDim.x)
-			{
-				// We must find the k-th edge of the graph, both src and dest
-				int v = 0; // source vertex of k-th edge
-				int offset = 0;  // offset from adj list of v to get dest
+// 			for(int k = threadIdx.x; k < 2*m; k += blockDim.x)
+// 			{
+// 				// We must find the k-th edge of the graph, both src and dest
+// 				int v = 0; // source vertex of k-th edge
+// 				int offset = 0;  // offset from adj list of v to get dest
 				
-				// Tells us the length of each adj list per src vertex
-				length_t *srcLens = custing->dVD->used;
+// 				// Tells us the length of each adj list per src vertex
+// 				length_t *srcLens = custing->dVD->used;
 
-				// sum of edges for all edges for each source vNum we'vector
-				// already looked at (see vNum in the loop, below)
-				int counted = 0;
+// 				// sum of edges for all edges for each source vNum we'vector
+// 				// already looked at (see vNum in the loop, below)
+// 				int counted = 0;
 
-				// Find the k-th edge
-				for(int vNum = 0; vNum < n; vNum++) {
-					if (k > counted && k <= counted + srcLens[vNum]) {
-						// We know that k-th edge falls in vNum's adj list
-						offset = k - counted;
-						v = vNum;
-						break;
-					} else {
-						counted += srcLens[vNum];
-					}
-				}
-				// now, v is the true src of the k-th edge
+// 				// Find the k-th edge
+// 				for(int vNum = 0; vNum < n; vNum++) {
+// 					if (k > counted && k <= counted + srcLens[vNum]) {
+// 						// We know that k-th edge falls in vNum's adj list
+// 						offset = k - counted;
+// 						v = vNum;
+// 						break;
+// 					} else {
+// 						counted += srcLens[vNum];
+// 					}
+// 				}
+// 				// now, v is the true src of the k-th edge
 
-				int *d_row = (int *)((char*)d + blockIdx.x*pitch_d);
-				if(d_row[v] == current_depth)
-				{
-					// the dest vertex of the k-th edge
-					// get the adj list for v, offset by offset
-					int w = (int) ((custing->dVD->getAdj())[v]->dst)[offset];
-					if(d_row[w] == INT_MAX)
-					{
-						d_row[w] = current_depth + 1; 
-						done = false;
-					}
-					if(d_row[w] == (current_depth + 1)) 
-					{
-						unsigned long long *sigma_row = (unsigned long long*)((char*)sigma + blockIdx.x*pitch_sigma);
-						atomicAdd(&sigma_row[w],sigma_row[v]);
-					}
-				}
-			}
+// 				int *d_row = (int *)((char*)d + blockIdx.x*pitch_d);
+// 				if(d_row[v] == current_depth)
+// 				{
+// 					// the dest vertex of the k-th edge
+// 					// get the adj list for v, offset by offset
+// 					int w = (int) ((custing->dVD->getAdj())[v]->dst)[offset];
+// 					if(d_row[w] == INT_MAX)
+// 					{
+// 						d_row[w] = current_depth + 1; 
+// 						done = false;
+// 					}
+// 					if(d_row[w] == (current_depth + 1)) 
+// 					{
+// 						unsigned long long *sigma_row = (unsigned long long*)((char*)sigma + blockIdx.x*pitch_sigma);
+// 						atomicAdd(&sigma_row[w],sigma_row[v]);
+// 					}
+// 				}
+// 			}
 
-			__syncthreads();
-			current_depth++;
-		}
+// 			__syncthreads();
+// 			current_depth++;
+// 		}
 
-		__syncthreads();
-		current_depth--;
-		while(current_depth > 0)
-		{
-			for(int k=threadIdx.x; k<2*m; k+=blockDim.x)
-			{
-				// We must find the k-th edge of the graph, both src and dest
-				int w = 0; // source vertex of k-th edge
-				// int w = F[k];
-				int offset = 0;  // offset from adj list of v to get dest
+// 		__syncthreads();
+// 		current_depth--;
+// 		while(current_depth > 0)
+// 		{
+// 			for(int k=threadIdx.x; k<2*m; k+=blockDim.x)
+// 			{
+// 				// We must find the k-th edge of the graph, both src and dest
+// 				int w = 0; // source vertex of k-th edge
+// 				// int w = F[k];
+// 				int offset = 0;  // offset from adj list of v to get dest
 
-				// Tells us the length of each adj list per src vertex
-				length_t *srcLens = custing->dVD->used;
+// 				// Tells us the length of each adj list per src vertex
+// 				length_t *srcLens = custing->dVD->used;
 
-				// sum of edges for all edges for each source vNum we'vector
-				// already looked at (see vNum in the loop, below)
-				int counted = 0;
+// 				// sum of edges for all edges for each source vNum we'vector
+// 				// already looked at (see vNum in the loop, below)
+// 				int counted = 0;
 
-				// Find the k-th edge
-				for(int vNum = 0; vNum < n; vNum++) {
-					if (k > counted && k <= counted + srcLens[vNum]) {
-						// We know that k-th edge falls in vNum's adj list
-						offset = k - counted;
-						w = vNum;
-						break;
-					} else {
-						counted += srcLens[vNum];
-					}
-				}
-				// now, w is the true src of the k-th edge
+// 				// Find the k-th edge
+// 				for(int vNum = 0; vNum < n; vNum++) {
+// 					if (k > counted && k <= counted + srcLens[vNum]) {
+// 						// We know that k-th edge falls in vNum's adj list
+// 						offset = k - counted;
+// 						w = vNum;
+// 						break;
+// 					} else {
+// 						counted += srcLens[vNum];
+// 					}
+// 				}
+// 				// now, w is the true src of the k-th edge
 
-				int *d_row = (int *)((char*)d + blockIdx.x*pitch_d);
-				if(d_row[w] == current_depth)
-				{
-					// int v = C[k];
-					// the dest vertex of the k-th edge
-					// get the adj list for v, offset by offset
-					int v = (int) ((custing->dVD->getAdj())[w]->dst)[offset];
-					if(d_row[w] == (d_row[v]+1))
-					{
-						float *delta_row = (float*)((char*)delta + blockIdx.x*pitch_d);
-						unsigned long long *sigma_row = (unsigned long long*)((char*)sigma + blockIdx.x*pitch_sigma);
-						float change = (sigma_row[v] / (float)sigma_row[w]) * (1.0f + delta_row[w]);
-						atomicAdd(&delta_row[v], change);
-					}
-				}
-			}
-			__syncthreads();
-			current_depth--;
-		}
+// 				int *d_row = (int *)((char*)d + blockIdx.x*pitch_d);
+// 				if(d_row[w] == current_depth)
+// 				{
+// 					// int v = C[k];
+// 					// the dest vertex of the k-th edge
+// 					// get the adj list for v, offset by offset
+// 					int v = (int) ((custing->dVD->getAdj())[w]->dst)[offset];
+// 					if(d_row[w] == (d_row[v]+1))
+// 					{
+// 						float *delta_row = (float*)((char*)delta + blockIdx.x*pitch_d);
+// 						unsigned long long *sigma_row = (unsigned long long*)((char*)sigma + blockIdx.x*pitch_sigma);
+// 						float change = (sigma_row[v] / (float)sigma_row[w]) * (1.0f + delta_row[w]);
+// 						atomicAdd(&delta_row[v], change);
+// 					}
+// 				}
+// 			}
+// 			__syncthreads();
+// 			current_depth--;
+// 		}
 
-		for(int k=threadIdx.x; k<n; k+=blockDim.x)
-		{
-			if(k != i) //Don't count the source node
-			{
-				float *delta_row = (float*)((char*)delta + blockIdx.x*pitch_delta);
-				atomicAdd(&bc[k], delta_row[k]); //Does this need to be atomic?
-			}
-		}
-		__syncthreads();
-	}
-}
+// 		for(int k=threadIdx.x; k<n; k+=blockDim.x)
+// 		{
+// 			if(k != i) //Don't count the source node
+// 			{
+// 				float *delta_row = (float*)((char*)delta + blockIdx.x*pitch_delta);
+// 				atomicAdd(&bc[k], delta_row[k]); //Does this need to be atomic?
+// 			}
+// 		}
+// 		__syncthreads();
+// 	}
+// }
 
 // __global__ void bc_gpu_naive(float *bc, int *R, int *C, int n, int m) 
 // {
@@ -442,81 +442,81 @@ __global__ void bc_gpu_opt(const cuStinger *custing, int n, int m, float *bc,
 // 	}*/
 // }
 
-void bc_static(cuStinger& custing, float *bc, int numRoots,
-	int max_threads_per_block, int number_of_SMs) {
+// void bc_static(cuStinger& custing, float *bc, int numRoots,
+// 	int max_threads_per_block, int number_of_SMs) {
 
-    int thread_blocks = 1;
-    int blockdim = 1;
-	vertexId_t numVertices = custing.nv;
+//     int thread_blocks = 1;
+//     int blockdim = 1;
+// 	vertexId_t numVertices = custing.nv;
 
-    std::cout << "Allocating mem for sigma, delta, d" << std::endl;
+//     std::cout << "Allocating mem for sigma, delta, d" << std::endl;
 
-    unsigned long long *sigma;
-	float *delta;
-	int *d;
+//     unsigned long long *sigma;
+// 	float *delta;
+// 	int *d;
 
-	// Optimization used for 2D arrays
-	size_t pitch_sigma, pitch_delta, pitch_d;
+// 	// Optimization used for 2D arrays
+// 	size_t pitch_sigma, pitch_delta, pitch_d;
 
-	// sigma, delta, and d are all 2D arrays of size (numRoots * numVertices)
-	// checkCudaErrors( cudaMalloc(&sigma, sizeof(unsigned long long) * numRoots * numVertices) );
-	// checkCudaErrors( cudaMalloc(&delta, sizeof(float) * numRoots * numVertices) );
-	// checkCudaErrors( cudaMalloc(&d, sizeof(int) * numRoots * numVertices) );
+// 	// sigma, delta, and d are all 2D arrays of size (numRoots * numVertices)
+// 	// checkCudaErrors( cudaMalloc(&sigma, sizeof(unsigned long long) * numRoots * numVertices) );
+// 	// checkCudaErrors( cudaMalloc(&delta, sizeof(float) * numRoots * numVertices) );
+// 	// checkCudaErrors( cudaMalloc(&d, sizeof(int) * numRoots * numVertices) );
 
-	checkCudaErrors( cudaMallocPitch(&sigma, &pitch_sigma, sizeof(unsigned long long) * numVertices, numRoots) );
-	checkCudaErrors( cudaMallocPitch(&delta, &pitch_delta, sizeof(float) * numVertices, numRoots) );
-	checkCudaErrors( cudaMallocPitch(&d, &pitch_d, sizeof(int) * numVertices, numRoots) );
+// 	checkCudaErrors( cudaMallocPitch(&sigma, &pitch_sigma, sizeof(unsigned long long) * numVertices, numRoots) );
+// 	checkCudaErrors( cudaMallocPitch(&delta, &pitch_delta, sizeof(float) * numVertices, numRoots) );
+// 	checkCudaErrors( cudaMallocPitch(&d, &pitch_d, sizeof(int) * numVertices, numRoots) );
 
-	float *bc_d;  // The actual bc values we'll keep after computation, on the device
-	checkCudaErrors( cudaMalloc(&bc_d, sizeof(float) * numVertices) );
+// 	float *bc_d;  // The actual bc values we'll keep after computation, on the device
+// 	checkCudaErrors( cudaMalloc(&bc_d, sizeof(float) * numVertices) );
 
-	//Set kernel dimensions
-	dim3 dimBlock, dimGrid;
-	dimBlock.x = max_threads_per_block;
-	dimBlock.y = 1;
-	dimBlock.z = 1;
-	dimGrid.x = number_of_SMs;
-	dimGrid.y = 1;
-	dimGrid.z = 1;
+// 	//Set kernel dimensions
+// 	dim3 dimBlock, dimGrid;
+// 	dimBlock.x = max_threads_per_block;
+// 	dimBlock.y = 1;
+// 	dimBlock.z = 1;
+// 	dimGrid.x = number_of_SMs;
+// 	dimGrid.y = 1;
+// 	dimGrid.z = 1;
 
-	// n = # vertices in graph
-	int n = custing.nv;
-	// m = # edges in graph
-	int m = custing.getNumberEdgesUsed();
+// 	// n = # vertices in graph
+// 	int n = custing.nv;
+// 	// m = # edges in graph
+// 	int m = custing.getNumberEdgesUsed();
 
-	// Does nothing
-	std::cout << "About to call empty brandes function" << std::endl;
-    bc_static_brandes<<<thread_blocks, blockdim>>>(custing.devicePtr(), sigma, delta, d, bc_d, numRoots);
+// 	// Does nothing
+// 	std::cout << "About to call empty brandes function" << std::endl;
+//     bc_static_brandes<<<thread_blocks, blockdim>>>(custing.devicePtr(), sigma, delta, d, bc_d, numRoots);
 
-	// TODO: Why did Adam choose 30?
-	for(int i=1; i<=30; i++) //Might want to show for a larger number of blocks as well
-	{
-		dimGrid.x = i;
-		// start_clock(start,end);
-		std::cout << "About actual bc_gpu_opt function" << std::endl;
-		bc_gpu_opt<<<dimGrid, dimBlock>>>(custing.devicePtr(), n, m, bc_d,
-			sigma, delta, d, pitch_sigma, pitch_delta, pitch_d, 0, numRoots);
+// 	// TODO: Why did Adam choose 30?
+// 	for(int i=1; i<=30; i++) //Might want to show for a larger number of blocks as well
+// 	{
+// 		dimGrid.x = i;
+// 		// start_clock(start,end);
+// 		std::cout << "About actual bc_gpu_opt function" << std::endl;
+// 		bc_gpu_opt<<<dimGrid, dimBlock>>>(custing.devicePtr(), n, m, bc_d,
+// 			sigma, delta, d, pitch_sigma, pitch_delta, pitch_d, 0, numRoots);
 
-		checkCudaErrors(cudaPeekAtLastError()); //Check for kernel launch errors
-		// time_gpu_opt = end_clock(start,end);
-		// std::cout << "," << time_gpu_opt/(float)1000; //Time in seconds
-	}
+// 		checkCudaErrors(cudaPeekAtLastError()); //Check for kernel launch errors
+// 		// time_gpu_opt = end_clock(start,end);
+// 		// std::cout << "," << time_gpu_opt/(float)1000; //Time in seconds
+// 	}
 
 
-    // std::cout << "PTR sigma: " << sigma << std::endl;
-    // std::cout << "PTR delta: " << delta << std::endl;
-    // std::cout << "PTR d: " << d << std::endl;
+//     // std::cout << "PTR sigma: " << sigma << std::endl;
+//     // std::cout << "PTR delta: " << delta << std::endl;
+//     // std::cout << "PTR d: " << d << std::endl;
 
-	// std::cout << std::endl;
-	// std::cout << "PTR bc: " << bc << std::endl;
+// 	// std::cout << std::endl;
+// 	// std::cout << "PTR bc: " << bc << std::endl;
 
-	// Put results from GPU bc array into CPU bc array
-	checkCudaErrors(cudaMemcpy(bc, bc_d, sizeof(float) * custing.nv, cudaMemcpyDeviceToHost));
+// 	// Put results from GPU bc array into CPU bc array
+// 	checkCudaErrors(cudaMemcpy(bc, bc_d, sizeof(float) * custing.nv, cudaMemcpyDeviceToHost));
 
-	// Free memory
-    checkCudaErrors( cudaFree(sigma) );
-	checkCudaErrors( cudaFree(delta) );
-	checkCudaErrors( cudaFree(d) );
-	checkCudaErrors( cudaFree(bc_d) );
+// 	// Free memory
+//     checkCudaErrors( cudaFree(sigma) );
+// 	checkCudaErrors( cudaFree(delta) );
+// 	checkCudaErrors( cudaFree(d) );
+// 	checkCudaErrors( cudaFree(bc_d) );
 
-}
+// }
