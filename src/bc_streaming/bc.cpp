@@ -12,7 +12,7 @@
 
 #include <getopt.h>
 
-// #include "bc.hpp"
+#include "bc_streaming/bc.hpp"
 
 #define CUDA(call, ...) do {                        \
         cudaError_t _e = (call);                    \
@@ -280,6 +280,9 @@ int main(const int argc, char **argv)
 	float *bc = new float[nv];
 
 	// bc_static(custing, bc, options.numRoots, max_threads_per_block, number_of_SMs);
+
+    // dummy kernel call
+    bcMain(custing, NULL);
 
 	std::cout << "OUTCOME: " << std::endl;
 

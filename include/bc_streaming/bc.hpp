@@ -29,6 +29,8 @@ typedef struct
 	char *infile;
 } program_options;
 
+void bcMain(cuStinger& custing, void* func_meta_data);
+
 // void bc_static(cuStinger& custing, void* func_meta_data);
 // void bc_static(cuStinger& custing, float *bc, int numRoots,
 // 	int max_threads_per_block, int number_of_SMs);
