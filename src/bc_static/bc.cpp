@@ -12,7 +12,7 @@
 
 #include <getopt.h>
 
-#include "bc_streaming/bc.hpp"
+#include "bc_static/bc.hpp"
 
 #define CUDA(call, ...) do {                        \
         cudaError_t _e = (call);                    \

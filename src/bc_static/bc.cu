@@ -27,7 +27,7 @@ using namespace cub;
 
 #include <iostream>
 
-#include "bc_streaming/bc.hpp"
+#include "bc_static/bc.hpp"
 
 
 __global__ void bc_static_brandes(cuStinger *custing, unsigned long long *sigma,
