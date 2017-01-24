@@ -12,7 +12,10 @@
 
 #include <getopt.h>
 
-#include "bc_static/bc.hpp"
+#include "algs.cuh"
+#include "bc_static/bc.cuh"
+
+using namespace cuStingerAlgs;
 
 #define CUDA(call, ...) do {                        \
         cudaError_t _e = (call);                    \
@@ -33,18 +36,30 @@ void printUsageInfo(char **argv)
 
 	std::cout << "Options: " << std::endl;
 
-	std::cout << "-v                 \tVerbose. Prints debug output";
+	std::cout << "-v                      \tVerbose. Prints debug output";
 	std::cout << " to stdout" << std::endl;
 
-	std::cout << "-k <# of src nodes>\tApproximate BC using a given";
+	std::cout << "-k <# of src nodes>     \tApproximate BC using a given";
 	std::cout << " number of random source nodes" << std::endl;
 
-	std::cout << "-t                 \tStreaming BC" << std::endl;
+	std::cout << "-t <# of nodes to add>  \tStreaming BC" << std::endl;
 	std::cout << std::endl;
 }
 
-program_options options;
+typedef struct		
+{		
+	bool streaming;		
+	bool approx;		
+	// number of vertices used. If approx, set here via CLI.		
+	// otherwise defaults to all vertices		
+	int numRoots;		
+	bool verbose;  // print debug info		
+	int edgesToAdd;  // edges to add		
+	char *infile;		
+} program_options;		
 
+
+program_options options;
 
 
 void parse_arguments(int argc, char **argv)
@@ -52,12 +67,11 @@ void parse_arguments(int argc, char **argv)
 	int c;
 	static struct option long_options[] =
 	{
-		{"help",no_argument,0,'h'},
-		{"infile",required_argument,0,'i'},
-		{"source_nodes",required_argument,0,'k'},
-		{"stream",required_argument,0,'t'},  // arg is # of edges to insert
-		{"verbose",no_argument,0,'v'},
-		// {"gpu",required_argument,0,'g'},  // arg is device number for GPU
+		{"help", no_argument, 0, 'h'},
+		{"infile", required_argument, 0, 'i'},
+		{"source_nodes", required_argument, 0, 'k'},
+		{"stream", required_argument, 0, 't'},  // arg is # of edges to insert
+		{"verbose", no_argument, 0,'v'},
 		{0,0,0,0} // Terminate with null
 	};
 
@@ -90,7 +104,6 @@ void parse_arguments(int argc, char **argv)
 				printUsageInfo(argv);
 				exit(0);
 			break;
-		
 
 			default: //Fatal error
 				std::cerr << "Internal error parsing arguments." << std::endl;
@@ -124,7 +137,8 @@ void parse_arguments(int argc, char **argv)
 }
 
 void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc,
-	vertexId_t* edgeDst) {
+	vertexId_t* edgeDst)
+{
 		std::cout << "Edge Updates: " << std::endl;
 	for(int32_t e=0; e<numEdges; e++) {
 		edgeSrc[e] = rand()%nv;
@@ -156,7 +170,8 @@ void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc,
 // 	}
 // }
 
-void printcuStingerUtility(cuStinger custing) {
+void printcuStingerUtility(cuStinger custing)
+{
 	length_t used,allocated;
 
 	used = custing.getNumberEdgesUsed();
@@ -166,9 +181,9 @@ void printcuStingerUtility(cuStinger custing) {
 }
 
 
-typedef void (*cus_kernel_call)(cuStinger& custing, void* func_meta_data);
+// typedef void (*cus_kernel_call)(cuStinger& custing, void* func_meta_data);
 
-void bc_static(cuStinger& custing, void* func_meta_data);
+// void bc_static(cuStinger& custing, void* func_meta_data);
 
 
 int main(const int argc, char **argv)
@@ -203,6 +218,7 @@ int main(const int argc, char **argv)
 	}
 	else{ 
 		cout << "Unknown graph type" << endl;
+		exit(0);
 	}
 
 	std::cout << "Vertices: " << nv << endl;
@@ -219,18 +235,18 @@ int main(const int argc, char **argv)
 	cuStinger custing(defaultInitAllocater,defaultUpdateAllocater);
 
 	cuStingerInitConfig cuInit;
-	cuInit.initState =eInitStateCSR;
-	cuInit.maxNV = nv+1;
+	cuInit.initState = eInitStateCSR;
+	cuInit.maxNV = nv + 1;
 	cuInit.useVWeight = false;
 	cuInit.isSemantic = false;  // Use edge types and vertex types
 	cuInit.useEWeight = false;
 	// CSR data
-	cuInit.csrNV 			= nv;
-	cuInit.csrNE	   		= ne;
-	cuInit.csrOff 			= off;
-	cuInit.csrAdj 			= adj;
-	cuInit.csrVW 			= NULL;
-	cuInit.csrEW			= NULL;
+	cuInit.csrNV  = nv;
+	cuInit.csrNE = ne;
+	cuInit.csrOff  = off;
+	cuInit.csrAdj  = adj;
+	cuInit.csrVW  = NULL;
+	cuInit.csrEW = NULL;
 
 	custing.initializeCuStinger(cuInit);
 
@@ -279,10 +295,20 @@ int main(const int argc, char **argv)
 
 	float *bc = new float[nv];
 
-	// bc_static(custing, bc, options.numRoots, max_threads_per_block, number_of_SMs);
+	StaticBC sbc;
+	sbc.Init(custing);
+	sbc.Reset();
+	sbc.setInputParameters(nv);
 
-    // dummy kernel call
-    bcMain(custing, NULL);
+	start_clock(ce_start, ce_stop);
+	sbc.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
+
+	cout << "The number of levels          : " << sbc.getLevels() << endl;
+	cout << "The number of elements found  : " << sbc.getElementsFound() << endl;
+	cout << "Total time for connected-BFS : " << totalTime << endl; 
+
+	sbc.Release();
 
 	std::cout << "OUTCOME: " << std::endl;
 
