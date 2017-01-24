@@ -37,33 +37,33 @@ public:
 
 	void SyncHostWithDevice()
 	{
-		copyArrayDeviceToHost(devicebcStaticData,&hostbcStaticData,1, sizeof(bcStaticData));
+		copyArrayDeviceToHost(deviceBcStaticData,&hostBcStaticData,1, sizeof(bcStaticData));
 	}
 	void SyncDeviceWithHost()
 	{
-		copyArrayHostToDevice(&hostbcStaticData,devicebcStaticData,1, sizeof(bcStaticData));
+		copyArrayHostToDevice(&hostBcStaticData,deviceBcStaticData,1, sizeof(bcStaticData));
 	}
 	
-	length_t getLevels(){return hostbcStaticData.currLevel;}
-	length_t getElementsFound(){return hostbcStaticData.queue.getQueueEnd();}
+	length_t getLevels(){return hostBcStaticData.currLevel;}
+	length_t getElementsFound(){return hostBcStaticData.queue.getQueueEnd();}
 
 	void setInputParameters(vertexId_t root);
 
 	// User is responsible for de-allocating memory.
 	vertexId_t* getLevelArrayHost()
 	{
-		vertexId_t* hostArr = (vertexId_t*)allocHostArray(hostbcStaticData.nv, sizeof(vertexId_t));
-		copyArrayDeviceToHost(hostbcStaticData.level, hostArr, hostbcStaticData.nv, sizeof(vertexId_t) );
+		vertexId_t* hostArr = (vertexId_t*)allocHostArray(hostBcStaticData.nv, sizeof(vertexId_t));
+		copyArrayDeviceToHost(hostBcStaticData.level, hostArr, hostBcStaticData.nv, sizeof(vertexId_t) );
 		return hostArr;
 	}
 
 	// User sends pre-allocated array.
 	void getLevelArrayForHost(vertexId_t* hostArr)
 	{
-		copyArrayDeviceToHost(hostbcStaticData.level, hostArr, hostbcStaticData.nv, sizeof(vertexId_t) );
+		copyArrayDeviceToHost(hostBcStaticData.level, hostArr, hostBcStaticData.nv, sizeof(vertexId_t) );
 	}
 
-	bcStaticData hostbcStaticData, *devicebcStaticData;
+	bcStaticData hostBcStaticData, *deviceBcStaticData;
 };
 
 
