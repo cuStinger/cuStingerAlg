@@ -18,7 +18,7 @@ using namespace std;
 namespace cuStingerAlgs {
 
 
-void StaticBreadthFirstSearch::Init(cuStinger& custing)
+void StaticBC::Init(cuStinger& custing)
 {
 	hostBcStaticData.nv = custing.nv;
 	hostBcStaticData.queue.Init(custing.nv);
@@ -37,7 +37,7 @@ void StaticBreadthFirstSearch::Init(cuStinger& custing)
 }
 
 
-void StaticBreadthFirstSearch::Reset()
+void StaticBC::Reset()
 {
 	hostBcStaticData.queue.resetQueue();
 	hostBcStaticData.currLevel = 0;
@@ -46,20 +46,20 @@ void StaticBreadthFirstSearch::Reset()
 }
 
 
-void StaticBreadthFirstSearch::setInputParameters(vertexId_t root)
+void StaticBC::setInputParameters(vertexId_t root)
 {
 	hostBcStaticData.root = root;
 }
 
 
-void StaticBreadthFirstSearch::Release()
+void StaticBC::Release()
 {
 	freeDeviceArray(deviceBcStaticData);
 	freeDeviceArray(hostBcStaticData.level);
 }
 
 
-void StaticBreadthFirstSearch::Run(cuStinger& custing)
+void StaticBC::Run(cuStinger& custing)
 {
 
 	cusLoadBalance cusLB(hostBcStaticData.nv);
