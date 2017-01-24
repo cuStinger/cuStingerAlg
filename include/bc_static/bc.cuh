@@ -25,7 +25,7 @@ public:
 };
 
 
-class StaticBreadthFirstSearch:public StaticAlgorithm {
+class StaticBC:public StaticAlgorithm {
 public:	
 
 	void Init(cuStinger& custing);
