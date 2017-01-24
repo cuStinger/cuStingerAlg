@@ -17,9 +17,9 @@ public:
 	vertexId_t currLevel;
 	vertexId_t root;
 	
-	Vector<int> *d;  // depth
-	Vector<long> *sigma;
-	Vector<float> *delta;
+	int *d;  // depth
+	long *sigma;
+	float *delta;
 
 	length_t nv;
 };

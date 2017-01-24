@@ -30,8 +30,8 @@ void StaticBC::Init(cuStinger& custing)
 	hostBcStaticData.sigma = (long*) allocDeviceArray(hostBcStaticData.nv, sizeof(long));
 	hostBcStaticData.delta = (float*) allocDeviceArray(hostBcStaticData.nv, sizeof(float));
 
-	deviceBcStaticData = (bfsData*) allocDeviceArray(1, sizeof(bfsData));
-	copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bfsData));
+	deviceBcStaticData = (bcStaticData*) allocDeviceArray(1, sizeof(bcStaticData));
+	copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bcStaticData));
 
 	Reset();
 }
@@ -42,7 +42,7 @@ void StaticBC::Reset()
 	hostBcStaticData.queue.resetQueue();
 	hostBcStaticData.currLevel = 0;
 
-	copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bfsData));
+	copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bcStaticData));
 }
 
 
