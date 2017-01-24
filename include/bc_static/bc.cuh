@@ -1,7 +1,6 @@
 #pragma once
 
 #include "algs.cuh"
-#include <stdio.h>
 
 // Betweenness Centrality
 
@@ -33,15 +32,13 @@ public:
 	void Run(cuStinger& custing);
 	void Release();
 
-	void Run2(cuStinger& custing);
-
 	void SyncHostWithDevice()
 	{
-		copyArrayDeviceToHost(deviceBcStaticData,&hostBcStaticData,1, sizeof(bcStaticData));
+		copyArrayDeviceToHost(deviceBcStaticData, &hostBcStaticData, 1, sizeof(bcStaticData));
 	}
 	void SyncDeviceWithHost()
 	{
-		copyArrayHostToDevice(&hostBcStaticData,deviceBcStaticData,1, sizeof(bcStaticData));
+		copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bcStaticData));
 	}
 	
 	length_t getLevels(){return hostBcStaticData.currLevel;}
