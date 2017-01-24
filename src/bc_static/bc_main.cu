@@ -213,9 +213,10 @@ int main(const int argc, char **argv)
 	if(isDimacs){
 	    readGraphDIMACS(options.infile, &off, &adj, &nv, &ne, isRmat);
 	}
-	else if(isSNAP){
-	    readGraphSNAP(options.infile, &off, &adj, &nv, &ne);
-	}
+	// TODO: FIX THIS
+	// else if(isSNAP){
+	//     readGraphSNAP(options.infile, &off, &adj, &nv, &ne);
+	// }
 	else{ 
 		cout << "Unknown graph type" << endl;
 		exit(0);
@@ -302,7 +303,7 @@ int main(const int argc, char **argv)
 
 	start_clock(ce_start, ce_stop);
 	sbc.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
+	float totalTime = end_clock(ce_start, ce_stop);
 
 	cout << "The number of levels          : " << sbc.getLevels() << endl;
 	cout << "The number of elements found  : " << sbc.getElementsFound() << endl;
