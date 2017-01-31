@@ -299,7 +299,8 @@ int main(const int argc, char **argv)
 	StaticBC sbc;
 	sbc.Init(custing);
 	sbc.Reset();
-	sbc.setInputParameters(nv);
+	vertexId_t root = rand() % nv;
+	sbc.setInputParameters(root);
 
 	start_clock(ce_start, ce_stop);
 	sbc.Run(custing);
