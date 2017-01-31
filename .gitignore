@@ -72,3 +72,4 @@ CTestTestfile.cmake
 =======
 .DS_Store
 *.o
+build/
