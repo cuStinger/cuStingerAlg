@@ -87,5 +87,173 @@ void StaticBC::Run(cuStinger& custing)
 	}
 }
 
+// __global__ void StaticBC::DependencyAccumulation(cuStinger& custing, float *bc)
+// {
+// 	// We want to traverse backwards from Queue
+// 	// Walk back from the queue in reverse
+// 	// vertexQueue vxQueue = hostBcStaticData.queue;
+	
+// 	// will be length nv
+// 	vertexId_t *vxQueue = new vertexId_t[custing.nv];
+// 	// copy all data over from device
+// 	copyArrayDeviceToHost(hostBcStaticData.queue.getQueue(), vxQueue, custing.nv, sizeof(vertexId_t));
+
+// 	// vxQueue.setQueueCurr(0);  // 0 is the position of the cu
+// 	// vertexId_t *start = vxQueue.getQueue();
+// 	// vertexId_t *end = vxQueue.getQueue() + vxQueue.getQueueEnd() - 1;
+
+// 	vertexId_t nv = custing.nv;
+
+// 	vertexId_t* level = new vertexId_t[nv];
+// 	long *sigma = new long[nv];
+// 	float *delta = new float[nv];
+
+// 	copyArrayDeviceToHost(hostBcStaticData.level, level, nv, sizeof(vertexId_t));
+// 	copyArrayDeviceToHost(hostBcStaticData.sigma, sigma, nv, sizeof(long));
+// 	copyArrayDeviceToHost(hostBcStaticData.delta, delta, nv, sizeof(float));
+
+// 	printf("Begin Dep accumulation\n");
+
+// 	int idx = custing.nv - 1;
+
+// 	// Keep iterating backwards in the queue
+// 	while (idx >= 0)
+// 	{
+// 		// Look at adjacencies for this vertex at end
+// 		vertexId_t w = vxQueue[idx];
+// 		printf("Looking at all neighbors of vertex %d\n", w);
+// 		length_t numNeighbors = (custing.getHostVertexData()->used)[w];
+// 		printf("Num neighbors: %d\n", numNeighbors);
+// 		if (numNeighbors > 0)
+// 		{
+// 			// Get adjacency list
+// 			printf("Get adjacency list\n");
+// 			cuStinger::cusEdgeData *adj = (custing.getHostVertexData()->adj)[w];
+// 			for(int k = 0; k < numNeighbors; k++)
+// 			{
+// 				// neighbord v of w from the adjacency list
+// 				vertexId_t v = adj->dst[k];
+// 				// if depth is less than depth of w
+// 				if (level[v] == level[w] + 1)
+// 				{
+// 					printf("{%d} is a neighbor of {%d} at depth +1\n", v, w);
+// 					delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
+// 				}
+// 			}
+// 		}
+
+// 		// Now, put values into bc[]
+// 		if (w != hostBcStaticData.root)
+// 		{
+// 			bc[w] += delta[w];
+// 		}
+
+// 		idx--;
+// 	}
+
+// 	delete[] level;
+// 	delete[] sigma;
+// 	delete[] delta;
+// }
+
+void StaticBC::DependencyAccumulation(cuStinger& custing, float *bc)
+{
+	// We want to traverse backwards from Queue
+	// Walk back from the queue in reverse
+	// vertexQueue vxQueue = hostBcStaticData.queue;
+	
+	// will be length nv
+	// vertexId_t *vxQueue = new vertexId_t[custing.nv];
+	// // copy all data over from device
+	// copyArrayDeviceToHost(hostBcStaticData.queue.getQueue(), vxQueue, custing.nv, sizeof(vertexId_t));
+
+	// // vxQueue.setQueueCurr(0);  // 0 is the position of the cu
+	// // vertexId_t *start = vxQueue.getQueue();
+	// // vertexId_t *end = vxQueue.getQueue() + vxQueue.getQueueEnd() - 1;
+
+	// vertexId_t nv = custing.nv;
+
+	// vertexId_t* level = new vertexId_t[nv];
+	// long *sigma = new long[nv];
+	// float *delta = new float[nv];
+
+	// copyArrayDeviceToHost(hostBcStaticData.level, level, nv, sizeof(vertexId_t));
+	// copyArrayDeviceToHost(hostBcStaticData.sigma, sigma, nv, sizeof(long));
+	// copyArrayDeviceToHost(hostBcStaticData.delta, delta, nv, sizeof(float));
+
+	// printf("Begin Dep accumulation\n");
+
+	// int idx = custing.nv - 1;
+
+	// // Keep iterating backwards in the queue
+	// while (idx >= 0)
+	// {
+	// 	// Look at adjacencies for this vertex at end
+	// 	vertexId_t w = vxQueue[idx];
+	// 	printf("Looking at all neighbors of vertex %d\n", w);
+	// 	length_t numNeighbors = (custing.getHostVertexData()->used)[w];
+	// 	printf("Num neighbors: %d\n", numNeighbors);
+	// 	if (numNeighbors > 0)
+	// 	{
+	// 		// Get adjacency list
+	// 		printf("Get adjacency list\n");
+	// 		cuStinger::cusEdgeData *adj = (custing.getHostVertexData()->adj)[w];
+	// 		for(int k = 0; k < numNeighbors; k++)
+	// 		{
+	// 			// neighbord v of w from the adjacency list
+	// 			vertexId_t v = adj->dst[k];
+	// 			// if depth is less than depth of w
+	// 			if (level[v] == level[w] + 1)
+	// 			{
+	// 				printf("{%d} is a neighbor of {%d} at depth +1\n", v, w);
+	// 				delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
+	// 			}
+	// 		}
+	// 	}
+
+	// 	// Now, put values into bc[]
+	// 	if (w != hostBcStaticData.root)
+	// 	{
+	// 		bc[w] += delta[w];
+	// 	}
+
+	// 	idx--;
+	// }
+
+	// delete[] level;
+	// delete[] sigma;
+	// delete[] delta;
+
+	float *dev_bc;
+	vertexId_t *queue = hostBcStaticData.queue.getQueue();
+	checkCudaErrors(cudaMalloc(&dev_bc, sizeof(float) * custing.nv));
+	hostDependencyAccumulation<<<1, 1>>>(custing.devicePtr(), deviceBcStaticData, queue, dev_bc);
+	checkCudaErrors(cudaFree(dev_bc));
+}
+
+
+__global__ void hostDependencyAccumulation(cuStinger *custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *dev_bc)
+{
+	printf("Global dep accum\n");
+	deviceDependencyAccumulation(custing, deviceBcStaticData, queue, dev_bc);
+}
+
+__device__ void deviceDependencyAccumulation(cuStinger* custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *bc)
+{
+	printf("Device dep accum\n");
+	// Iterate backwards over queue
+	// vertexId_t *queue = deviceBcStaticData->queue.getQueue();
+	vertexId_t nv = custing->nv;
+	int idx = nv - 1;
+	while (idx >= 0)
+	{
+		vertexId_t w = queue[idx];
+
+		printf("Looking at vertex w: {%d}\n", w);
+		// Look at all neighbors
+
+		idx--;
+	}
+}
 
 } // cuStingerAlgs namespace 
