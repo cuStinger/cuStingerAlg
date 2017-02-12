@@ -16,6 +16,7 @@
 #include "bc_static/bc.cuh"
 
 using namespace cuStingerAlgs;
+using namespace std;
 
 #define CUDA(call, ...) do {                        \
         cudaError_t _e = (call);                    \
@@ -30,33 +31,33 @@ typedef void (*cus_kernel_call)(cuStinger& custing, void* func_meta_data);
 
 void printUsageInfo(char **argv)
 {
-	std::cout << "Usage: " << argv[0];
-	std::cout << " -i <graph input file> [optional arguments]";
-	std::cout << std::endl << std::endl;
+	cout << "Usage: " << argv[0];
+	cout << " -i <graph input file> [optional arguments]";
+	cout << endl << endl;
 
-	std::cout << "Options: " << std::endl;
+	cout << "Options: " << endl;
 
-	std::cout << "-v                      \tVerbose. Prints debug output";
-	std::cout << " to stdout" << std::endl;
+	cout << "-v                      \tVerbose. Prints debug output";
+	cout << " to stdout" << endl;
 
-	std::cout << "-k <# of src nodes>     \tApproximate BC using a given";
-	std::cout << " number of random source nodes" << std::endl;
+	cout << "-k <# of src nodes>     \tApproximate BC using a given";
+	cout << " number of random source nodes" << endl;
 
-	std::cout << "-t <# of nodes to add>  \tStreaming BC" << std::endl;
-	std::cout << std::endl;
+	cout << "-t <# of nodes to add>  \tStreaming BC" << endl;
+	cout << endl;
 }
 
-typedef struct		
-{		
-	bool streaming;		
-	bool approx;		
-	// number of vertices used. If approx, set here via CLI.		
-	// otherwise defaults to all vertices		
-	int numRoots;		
-	bool verbose;  // print debug info		
-	int edgesToAdd;  // edges to add		
-	char *infile;		
-} program_options;		
+typedef struct
+{
+	bool streaming;
+	bool approx;
+	// number of vertices used. If approx, set here via CLI.
+	// otherwise defaults to all vertices
+	int numRoots;
+	bool verbose;  // print debug info
+	int edgesToAdd;  // edges to add
+	char *infile;
+} program_options;
 
 
 program_options options;
@@ -87,8 +88,8 @@ void parse_arguments(int argc, char **argv)
 			break;
 
 			case 'k':
-				options.numRoots = atoi(optarg);	
-				options.approx = true;	
+				options.numRoots = atoi(optarg);
+				options.approx = true;
 			break;
 
 			case 't':
@@ -106,7 +107,7 @@ void parse_arguments(int argc, char **argv)
 			break;
 
 			default: //Fatal error
-				std::cerr << "Internal error parsing arguments." << std::endl;
+				cerr << "Internal error parsing arguments." << endl;
 				printUsageInfo(argv);
 				exit(-1);
 		}
@@ -115,23 +116,23 @@ void parse_arguments(int argc, char **argv)
 	//Handle required command line options here
 	if(options.infile == NULL)
 	{
-		std::cerr << "Command line error: Graph input file is required.";
-		std::cerr << " Use the -i switch." << std::endl;
+		cerr << "Command line error: Graph input file is required.";
+		cerr << " Use the -i switch." << endl;
 		printUsageInfo(argv);
 		exit(-1);
 	}
 	if(options.approx && (options.numRoots == -1 || options.numRoots < 1))
 	{
-		std::cerr << "Command line error: Approximation requested but no";
-		std::cerr << " number of source nodes given. Defaulting to 128.";
-		std::cerr << std::endl;
+		cerr << "Command line error: Approximation requested but no";
+		cerr << " number of source nodes given. Defaulting to 128.";
+		cerr << endl;
 		options.numRoots = 128;
 	}
 	if(options.streaming && (options.edgesToAdd == -1))
 	{
-		std::cerr << "Command line error: Streaming requested but no";
-		std::cerr << " number of insertions given. Defaulting to 5.";
-		std::cerr << std::endl;
+		cerr << "Command line error: Streaming requested but no";
+		cerr << " number of insertions given. Defaulting to 5.";
+		cerr << endl;
 		options.edgesToAdd = 5;
 	}
 }
@@ -139,13 +140,13 @@ void parse_arguments(int argc, char **argv)
 void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc,
 	vertexId_t* edgeDst)
 {
-		std::cout << "Edge Updates: " << std::endl;
+		cout << "Edge Updates: " << endl;
 	for(int32_t e=0; e<numEdges; e++) {
 		edgeSrc[e] = rand()%nv;
 		edgeDst[e] = rand()%nv;
 
-		std::cout << "Edge: (" << edgeSrc[e] << ", " << edgeDst[e] << ")";
-		std::cout << std::endl;
+		cout << "Edge: (" << edgeSrc[e] << ", " << edgeDst[e] << ")";
+		cout << endl;
 	}
 }
 
@@ -165,8 +166,8 @@ void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc,
 // 		edgeSrc[e] = src;
 // 		edgeDst[e] = dst;
 
-// 		std::cout << "Edge: (" << edgeSrc[e] << ", " << edgeDst[e] << ")";
-// 		std::cout << std::endl;
+// 		cout << "Edge: (" << edgeSrc[e] << ", " << edgeDst[e] << ")";
+// 		cout << endl;
 // 	}
 // }
 
@@ -176,14 +177,9 @@ void printcuStingerUtility(cuStinger custing)
 
 	used = custing.getNumberEdgesUsed();
 	allocated = custing.getNumberEdgesAllocated();
-	std::cout << "Used: " << used << "\tAllocated: " << allocated;
-	std::cout << "\tRatio Used-To-Allocated: " << (float)used/(float)allocated << std::endl;
+	cout << "Used: " << used << "\tAllocated: " << allocated;
+	cout << "\tRatio Used-To-Allocated: " << (float)used/(float)allocated << endl;
 }
-
-
-// typedef void (*cus_kernel_call)(cuStinger& custing, void* func_meta_data);
-
-// void bc_static(cuStinger& custing, void* func_meta_data);
 
 
 int main(const int argc, char **argv)
@@ -197,7 +193,7 @@ int main(const int argc, char **argv)
 
 	int max_threads_per_block = prop.maxThreadsPerBlock;
 	int number_of_SMs = prop.multiProcessorCount;
- 
+
     length_t nv, ne,*off;
     vertexId_t *adj;
 
@@ -205,10 +201,10 @@ int main(const int argc, char **argv)
 	bool isSNAP = false;
 	bool isRmat = false;
 	string filename(options.infile);
-	
-	isDimacs = filename.find(".graph")==std::string::npos?false:true;
-	isSNAP   = filename.find(".txt")==std::string::npos?false:true;
-	isRmat 	 = filename.find("kron")==std::string::npos?false:true;
+
+	isDimacs = filename.find(".graph")==string::npos?false:true;
+	isSNAP   = filename.find(".txt")==string::npos?false:true;
+	isRmat 	 = filename.find("kron")==string::npos?false:true;
 
 	if(isDimacs){
 	    readGraphDIMACS(options.infile, &off, &adj, &nv, &ne, isRmat);
@@ -217,20 +213,20 @@ int main(const int argc, char **argv)
 	// else if(isSNAP){
 	//     readGraphSNAP(options.infile, &off, &adj, &nv, &ne);
 	// }
-	else{ 
+	else {
 		cout << "Unknown graph type" << endl;
 		exit(0);
 	}
 
-	std::cout << "Vertices: " << nv << endl;
-	std::cout << "Edges: " << ne << endl;
+	cout << "Vertices: " << nv << endl;
+	cout << "Edges: " << ne << endl;
 
 	// if not in approx mode, set numRoots to number of vertices
 	if (!options.approx) {
 		options.numRoots = nv;
 	}
 
-	std::cout << "Num Roots: " << options.numRoots << std::endl;
+	cout << "Num Roots: " << options.numRoots << endl;
 
 	cudaEvent_t ce_start,ce_stop;
 	cuStinger custing(defaultInitAllocater,defaultUpdateAllocater);
@@ -254,7 +250,7 @@ int main(const int argc, char **argv)
 	// First, we'll add some random edges
 	int numBatchEdges = options.edgesToAdd;
 
-	std::cout << "Num edges: " << numBatchEdges << std::endl;
+	cout << "Num edges: " << numBatchEdges << endl;
 
 	BatchUpdateData bud(numBatchEdges, true);
 
@@ -264,19 +260,19 @@ int main(const int argc, char **argv)
 	BatchUpdate bu(bud);
 
 	// Print stats before insertions
-	std::cout << "Before Insertions:" << std::endl;
+	cout << "Before Insertions:" << endl;
 	printcuStingerUtility(custing);
 
 	// Insert these edges
 	length_t allocs;
 	custing.edgeInsertions(bu, allocs);
-	std::cout << "After Insertions:" << std::endl;
+	cout << "After Insertions:" << endl;
 	printcuStingerUtility(custing);
 
 
 	// Now, delete them
 	custing.edgeDeletions(bu);
-	std::cout << "After Deletions:" << std::endl;
+	cout << "After Deletions:" << endl;
 	printcuStingerUtility(custing);
 
 	// Print custinger utility
@@ -295,36 +291,125 @@ int main(const int argc, char **argv)
 	// call_kernel(custing,NULL);
 
 	float *bc = new float[nv];
+	for (int k = 0; k < nv; k++)
+	{
+		bc[k] = 0;
+	}
+
+	vertexId_t root;
+	int rootsVisited = 0;
 
 	StaticBC sbc;
 	sbc.Init(custing);
 	sbc.Reset();
-	vertexId_t root = rand() % nv;
-	sbc.setInputParameters(root);
 
-	start_clock(ce_start, ce_stop);
-	sbc.Run(custing);
-	float totalTime = end_clock(ce_start, ce_stop);
+	vertexId_t* level = new vertexId_t[nv];
+	long *sigma = new long[nv];
+	float *delta = new float[nv];
 
-	cout << "The number of levels          : " << sbc.getLevels() << endl;
-	cout << "The number of elements found  : " << sbc.getElementsFound() << endl;
-	cout << "Total time for connected-BFS : " << totalTime << endl; 
+	while (rootsVisited < options.numRoots)
+	{
+		printf("Iteration: %d of %d.\n", rootsVisited + 1, options.numRoots);
 
+		// Get a rood node
+		if (options.approx)
+		{
+			root = rand() % nv;
+		} else
+		{
+			root = rootsVisited;
+		}
+		rootsVisited++;
+
+		// Now, set the root and run
+		sbc.setInputParameters(root);
+
+		start_clock(ce_start, ce_stop);
+		sbc.Run(custing);
+		float totalTime = end_clock(ce_start, ce_stop);
+
+		cout << "The number of levels          : " << sbc.getLevels() << endl;
+		cout << "The number of elements found  : " << sbc.getElementsFound() << endl;
+		cout << "Total time for connected-BFS : " << totalTime << endl;
+
+
+		// Dependency accumulation
+		// Walk back from the queue in reverse
+		vertexQueue queue = sbc.hostBcStaticData.queue;
+		queue.setQueueCurr(0);  // 0 is the position of the
+		vertexId_t *start = queue.getQueue();
+		vertexId_t *end = queue.getQueue() + queue.getQueueEnd() - 1;
+
+
+		// Update host copies of level, sigma, delta
+		copyArrayDeviceToHost(sbc.hostBcStaticData.level, level, nv, sizeof(vertexId_t));
+		copyArrayDeviceToHost(sbc.hostBcStaticData.sigma, sigma, nv, sizeof(long));
+		copyArrayDeviceToHost(sbc.hostBcStaticData.delta, delta, nv, sizeof(float));
+
+		// vertexId_t* level = sbc.hostBcStaticData.level;
+		// long *sigma = sbc.hostBcStaticData.sigma;
+		// float *delta = sbc.hostBcStaticData.delta;
+
+		printf("Begin Dep accumulation\n");
+
+		// Keep iterating backwards in the queue
+		while (end >= start)
+		{
+			// Look at adjacencies for this vertex at end
+			vertexId_t w = *end;
+			printf("Looking at all neighbors of vertex %d\n", w);
+			// length_t numNeighbors = (custing.getHostVertexData()->used)[w];
+			// if (numNeighbors > 0)
+			// {
+			// 	// Get adjacency list
+			// 	cuStinger::cusEdgeData *adj = (custing.getHostVertexData()->adj)[w];
+			// 	for(int k = 0; k < numNeighbors; k++)
+			// 	{
+			// 		// neighbord v of w from the adjacency list
+			// 		vertexId_t v = adj->dst[k];
+			// 		// if depth is less than depth of w
+			// 		if (level[v] == level[w] + 1)
+			// 		{
+			// 			printf("{} is a neighbor of {} at depth +1\n", v, w);
+			// 			delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
+			// 		}
+			// 	}
+			// }
+
+			// Now, put values into bc[]
+			if (w != root)
+			{
+				bc[w] += delta[w];
+			}
+
+			end--;
+		}
+
+		// Now, reset the queue
+		printf("Done with iteration. Reset queue\n");
+		sbc.Reset();
+	}
+
+	// Release only once all iterations are done.
 	sbc.Release();
 
-	std::cout << "OUTCOME: " << std::endl;
+	cout << "OUTCOME: " << endl;
 
-	for (int k = 0; k < custing.nv; k++)
+	for (int k = 0; k < nv; k++)
 	{
-		std::cout << "[ " << k  << " ]: " << bc[k] << std::endl;
+		cout << "[ " << k  << " ]: " << bc[k] << endl;
 	}
 
 	// Free memory
 	custing.freecuStinger();
 
 	delete[] bc;
+	delete[] level;
+	delete[] sigma;
+	delete[] delta;
 
 	free(off);
 	free(adj);
+
     return 0;
 }
