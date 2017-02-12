@@ -303,9 +303,9 @@ int main(const int argc, char **argv)
 	sbc.Init(custing);
 	sbc.Reset();
 
-	vertexId_t* level = new vertexId_t[nv];
-	long *sigma = new long[nv];
-	float *delta = new float[nv];
+	// vertexId_t* level = new vertexId_t[nv];
+	// long *sigma = new long[nv];
+	// float *delta = new float[nv];
 
 	while (rootsVisited < options.numRoots)
 	{
@@ -333,59 +333,60 @@ int main(const int argc, char **argv)
 		cout << "Total time for connected-BFS : " << totalTime << endl;
 
 
-		// Dependency accumulation
-		// Walk back from the queue in reverse
-		vertexQueue queue = sbc.hostBcStaticData.queue;
-		queue.setQueueCurr(0);  // 0 is the position of the
-		vertexId_t *start = queue.getQueue();
-		vertexId_t *end = queue.getQueue() + queue.getQueueEnd() - 1;
+		// // Dependency accumulation
+		// // Walk back from the queue in reverse
+		// vertexQueue queue = sbc.hostBcStaticData.queue;
+		// queue.setQueueCurr(0);  // 0 is the position of the
+		// vertexId_t *start = queue.getQueue();
+		// vertexId_t *end = queue.getQueue() + queue.getQueueEnd() - 1;
 
 
-		// Update host copies of level, sigma, delta
-		copyArrayDeviceToHost(sbc.hostBcStaticData.level, level, nv, sizeof(vertexId_t));
-		copyArrayDeviceToHost(sbc.hostBcStaticData.sigma, sigma, nv, sizeof(long));
-		copyArrayDeviceToHost(sbc.hostBcStaticData.delta, delta, nv, sizeof(float));
+		// // Update host copies of level, sigma, delta
+		// copyArrayDeviceToHost(sbc.hostBcStaticData.level, level, nv, sizeof(vertexId_t));
+		// copyArrayDeviceToHost(sbc.hostBcStaticData.sigma, sigma, nv, sizeof(long));
+		// copyArrayDeviceToHost(sbc.hostBcStaticData.delta, delta, nv, sizeof(float));
 
-		// vertexId_t* level = sbc.hostBcStaticData.level;
-		// long *sigma = sbc.hostBcStaticData.sigma;
-		// float *delta = sbc.hostBcStaticData.delta;
+		// // vertexId_t* level = sbc.hostBcStaticData.level;
+		// // long *sigma = sbc.hostBcStaticData.sigma;
+		// // float *delta = sbc.hostBcStaticData.delta;
 
-		printf("Begin Dep accumulation\n");
+		// printf("Begin Dep accumulation\n");
 
-		// Keep iterating backwards in the queue
-		while (end >= start)
-		{
-			// Look at adjacencies for this vertex at end
-			vertexId_t w = *end;
-			printf("Looking at all neighbors of vertex %d\n", w);
-			// length_t numNeighbors = (custing.getHostVertexData()->used)[w];
-			// if (numNeighbors > 0)
-			// {
-			// 	// Get adjacency list
-			// 	cuStinger::cusEdgeData *adj = (custing.getHostVertexData()->adj)[w];
-			// 	for(int k = 0; k < numNeighbors; k++)
-			// 	{
-			// 		// neighbord v of w from the adjacency list
-			// 		vertexId_t v = adj->dst[k];
-			// 		// if depth is less than depth of w
-			// 		if (level[v] == level[w] + 1)
-			// 		{
-			// 			printf("{} is a neighbor of {} at depth +1\n", v, w);
-			// 			delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
-			// 		}
-			// 	}
-			// }
+		// // Keep iterating backwards in the queue
+		// while (end >= start)
+		// {
+		// 	// Look at adjacencies for this vertex at end
+		// 	vertexId_t w = *end;
+		// 	printf("Looking at all neighbors of vertex %d\n", w);
+		// 	// length_t numNeighbors = (custing.getHostVertexData()->used)[w];
+		// 	// if (numNeighbors > 0)
+		// 	// {
+		// 	// 	// Get adjacency list
+		// 	// 	cuStinger::cusEdgeData *adj = (custing.getHostVertexData()->adj)[w];
+		// 	// 	for(int k = 0; k < numNeighbors; k++)
+		// 	// 	{
+		// 	// 		// neighbord v of w from the adjacency list
+		// 	// 		vertexId_t v = adj->dst[k];
+		// 	// 		// if depth is less than depth of w
+		// 	// 		if (level[v] == level[w] + 1)
+		// 	// 		{
+		// 	// 			printf("{} is a neighbor of {} at depth +1\n", v, w);
+		// 	// 			delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
+		// 	// 		}
+		// 	// 	}
+		// 	// }
 
-			// Now, put values into bc[]
-			if (w != root)
-			{
-				bc[w] += delta[w];
-			}
+		// 	// Now, put values into bc[]
+		// 	if (w != root)
+		// 	{
+		// 		bc[w] += delta[w];
+		// 	}
 
-			end--;
-		}
+		// 	end--;
+		// }
 
 		// Now, reset the queue
+		sbc.DependencyAccumulation(custing, bc);
 		printf("Done with iteration. Reset queue\n");
 		sbc.Reset();
 	}
@@ -404,9 +405,9 @@ int main(const int argc, char **argv)
 	custing.freecuStinger();
 
 	delete[] bc;
-	delete[] level;
-	delete[] sigma;
-	delete[] delta;
+	// delete[] level;
+	// delete[] sigma;
+	// delete[] delta;
 
 	free(off);
 	free(adj);

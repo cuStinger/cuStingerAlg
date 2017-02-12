@@ -32,6 +32,8 @@ public:
 	void Run(cuStinger& custing);
 	void Release();
 
+	void DependencyAccumulation(cuStinger& custing, float *bc);
+
 	void SyncHostWithDevice()
 	{
 		copyArrayDeviceToHost(deviceBcStaticData, &hostBcStaticData, 1, sizeof(bcStaticData));
@@ -92,5 +94,10 @@ public:
 
 }; // bcOperator
 
+
+__global__ void hostDependencyAccumulation(cuStinger* custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *bc);
+
+
+__device__ void deviceDependencyAccumulation(cuStinger* custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *bc);
 
 } //Namespace
