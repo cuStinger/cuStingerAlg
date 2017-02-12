@@ -228,6 +228,19 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *bc)
 	vertexId_t *queue = hostBcStaticData.queue.getQueue();
 	checkCudaErrors(cudaMalloc(&dev_bc, sizeof(float) * custing.nv));
 	hostDependencyAccumulation<<<1, 1>>>(custing.devicePtr(), deviceBcStaticData, queue, dev_bc);
+
+	float *delta = new float[custing.nv];
+	copyArrayDeviceToHost(dev_bc, delta, custing.nv, sizeof(float));
+
+
+	for (int i = 0; i < custing.nv; i++)
+	{
+		bc[i] += delta[i];
+	}
+
+	// Free host mem
+	delete[] delta;
+	// free cuda mem
 	checkCudaErrors(cudaFree(dev_bc));
 }
 
@@ -242,15 +255,47 @@ __device__ void deviceDependencyAccumulation(cuStinger* custing, bcStaticData *d
 {
 	printf("Device dep accum\n");
 	// Iterate backwards over queue
-	// vertexId_t *queue = deviceBcStaticData->queue.getQueue();
 	vertexId_t nv = custing->nv;
 	int idx = nv - 1;
+
+
+	vertexId_t* level = deviceBcStaticData->level;
+	long *sigma = deviceBcStaticData->sigma;
+	float *delta = deviceBcStaticData->delta;
+
+
 	while (idx >= 0)
 	{
 		vertexId_t w = queue[idx];
 
 		printf("Looking at vertex w: {%d}\n", w);
 		// Look at all neighbors
+
+		length_t numNeighbors = (custing->dVD->used)[w];
+		printf("Num neighbors: %d\n", numNeighbors);
+		if (numNeighbors > 0)
+		{
+			// Get adjacency list
+			printf("Get adjacency list\n");
+			cuStinger::cusEdgeData *adj = (custing->dVD->adj)[w];
+			for(int k = 0; k < numNeighbors; k++)
+			{
+				// neighbord v of w from the adjacency list
+				vertexId_t v = adj->dst[k];
+				// if depth is less than depth of w
+				if (level[v] == level[w] + 1)
+				{
+					printf("{%d} is a neighbor of {%d} at depth +1\n", v, w);
+					delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
+				}
+			}
+		}
+
+		// // Now, put values into bc
+		if (w != deviceBcStaticData->root)
+		{
+			bc[w] = delta[w];
+		}
 
 		idx--;
 	}
