@@ -30,6 +30,16 @@ void StaticBC::Init(cuStinger& custing)
 	hostBcStaticData.sigma = (long*) allocDeviceArray(hostBcStaticData.nv, sizeof(long));
 	hostBcStaticData.delta = (float*) allocDeviceArray(hostBcStaticData.nv, sizeof(float));
 
+	// on the host only
+	hostBcStaticData.offsets = new int[hostBcStaticData.nv];
+	// initialize to all zeros
+	for (int i = 0; i < custing.nv; i++)
+	{
+		hostBcStaticData.offsets[i] = 0;
+	}
+
+	printf("custing.nv size: --> %d\n", custing.nv);
+
 	deviceBcStaticData = (bcStaticData*) allocDeviceArray(1, sizeof(bcStaticData));
 	copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bcStaticData));
 
@@ -41,6 +51,12 @@ void StaticBC::Reset()
 {
 	hostBcStaticData.queue.resetQueue();
 	hostBcStaticData.currLevel = 0;
+
+	// re-initialize to all zeros
+	for (int i = 0; i < custing.nv; i++)
+	{
+		hostBcStaticData.offsets[i] = 0;
+	}
 
 	copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bcStaticData));
 }
@@ -56,6 +72,12 @@ void StaticBC::Release()
 {
 	freeDeviceArray(deviceBcStaticData);
 	freeDeviceArray(hostBcStaticData.level);
+
+	freeDeviceArray(hostBcStaticData.d);
+	freeDeviceArray(hostBcStaticData.sigma);
+	freeDeviceArray(hostBcStaticData.delta);
+
+	delete[] hostBcStaticData.offsets;
 }
 
 
@@ -77,6 +99,11 @@ void StaticBC::Run(cuStinger& custing)
 
 		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing,
 			deviceBcStaticData,cusLB,hostBcStaticData.queue);
+
+
+		// Update offsets for queue size
+		hostBcStaticData.offsets[hostBcStaticData.currLevel] = hostBcStaticData.queue.getActiveQueueSize();
+
 
 		SyncHostWithDevice();
 		hostBcStaticData.queue.setQueueCurr(prevEnd);
@@ -224,24 +251,40 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *bc)
 	// delete[] sigma;
 	// delete[] delta;
 
-	float *dev_bc;
-	vertexId_t *queue = hostBcStaticData.queue.getQueue();
-	checkCudaErrors(cudaMalloc(&dev_bc, sizeof(float) * custing.nv));
-	hostDependencyAccumulation<<<1, 1>>>(custing.devicePtr(), deviceBcStaticData, queue, dev_bc);
 
-	float *delta = new float[custing.nv];
-	copyArrayDeviceToHost(dev_bc, delta, custing.nv, sizeof(float));
+	// TODO: FIXME
+	// float *dev_bc;
+	// vertexId_t *queue = hostBcStaticData.queue.getQueue();
+	// checkCudaErrors(cudaMalloc(&dev_bc, sizeof(float) * custing.nv));
+	// hostDependencyAccumulation<<<1, 1>>>(custing.devicePtr(), deviceBcStaticData, queue, dev_bc);
+
+	// float *delta = new float[custing.nv];
+	// copyArrayDeviceToHost(dev_bc, delta, custing.nv, sizeof(float));
 
 
+	// for (int i = 0; i < custing.nv; i++)
+	// {
+	// 	bc[i] += delta[i];
+	// }
+
+	// // Free host mem
+	// delete[] delta;
+	// // free cuda mem
+	// checkCudaErrors(cudaFree(dev_bc));
+
+	int total_size = 0;
+
+	printf("Offsets/ Frontier sizes\n");
 	for (int i = 0; i < custing.nv; i++)
 	{
-		bc[i] += delta[i];
+		int off = hostBcStaticData.offsets[i];
+		if (off > 0)
+		{
+			printf("[%d] -> %d\n", i, off);
+			total_size += off;
+		}
 	}
-
-	// Free host mem
-	delete[] delta;
-	// free cuda mem
-	checkCudaErrors(cudaFree(dev_bc));
+	printf("Total size: %d\n", total_size);
 }
 
 
@@ -249,6 +292,7 @@ __global__ void hostDependencyAccumulation(cuStinger *custing, bcStaticData *dev
 {
 	printf("Global dep accum\n");
 	deviceDependencyAccumulation(custing, deviceBcStaticData, queue, dev_bc);
+	printf("Done with hostDependencyAccumulation\n");
 }
 
 __device__ void deviceDependencyAccumulation(cuStinger* custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *bc)
@@ -299,6 +343,8 @@ __device__ void deviceDependencyAccumulation(cuStinger* custing, bcStaticData *d
 
 		idx--;
 	}
+
+	printf("Done with deviceDependencyAccumulation\n");
 }
 
 } // cuStingerAlgs namespace 
