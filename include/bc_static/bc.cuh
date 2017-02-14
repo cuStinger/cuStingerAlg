@@ -20,6 +20,8 @@ public:
 	long *sigma;
 	float *delta;
 
+	int *offsets;  // length of each frontier. May have up to (custing.nv) frontiers
+
 	length_t nv;
 };
 
@@ -90,6 +92,12 @@ public:
 	{
 		bcStaticData* bcd = (bcStaticData*) metadata;
 		bcd->level[src] = INT32_MAX;
+	}
+
+	static __device__ __forceinline__ void stuff(cuStinger* custing,
+		vertexId_t src, void* metadata)
+	{
+
 	}
 
 }; // bcOperator
