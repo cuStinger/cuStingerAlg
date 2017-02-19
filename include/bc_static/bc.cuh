@@ -34,7 +34,8 @@ public:
 	void Run(cuStinger& custing);
 	void Release();
 
-	void DependencyAccumulation(cuStinger& custing, float *bc);
+	// delta_copy is an array on the host storing delta values from the device
+	void DependencyAccumulation(cuStinger& custing, float *delta_copy, float *bc);
 
 	void SyncHostWithDevice()
 	{
@@ -87,6 +88,16 @@ public:
 
 	}
 
+	// Use macro to clear values in arrays to 0
+	static __device__ __forceinline__ void clearArrays(cuStinger* custing,
+		vertexId_t src, void* metadata)
+	{
+		bcStaticData* bcd = (bcStaticData*) metadata;
+		bcd->d[src] = 0;
+		bcd->sigma[src] = 0;
+		bcd->delta[src] = 0.0;
+	}
+
 	static __device__ __forceinline__ void setLevelInfinity(cuStinger* custing,
 		vertexId_t src, void* metadata)
 	{
@@ -94,18 +105,27 @@ public:
 		bcd->level[src] = INT32_MAX;
 	}
 
-	static __device__ __forceinline__ void stuff(cuStinger* custing,
-		vertexId_t src, void* metadata)
+	// Dependency accumulation for one frontier
+	static __device__ __forceinline__ void dependencyAccumulation(cuStinger* custing,
+		vertexId_t src, vertexId_t dst, void* metadata)
 	{
+		printf("Start static algo\n");
+		bcStaticData* bcd = (bcStaticData*) metadata;
+		vertexId_t nextLevel = bcd->currLevel + 1;
 
+		vertexId_t *d = bcd->level;  // depth
+		long *sigma = bcd->sigma;
+		float *delta = bcd->delta;
+
+		if (d[dst] == nextLevel)
+		{
+			printf("Edge [%d]->[%d] is adjacent\n", src, dst);
+			delta[dst] += (sigma[dst] / sigma[src]) * (1 + delta[src]);
+
+		}
+		printf("end static algo\n");
 	}
 
 }; // bcOperator
-
-
-__global__ void hostDependencyAccumulation(cuStinger* custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *bc);
-
-
-__device__ void deviceDependencyAccumulation(cuStinger* custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *bc);
 
 } //Namespace

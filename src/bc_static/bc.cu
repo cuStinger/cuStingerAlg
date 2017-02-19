@@ -53,7 +53,7 @@ void StaticBC::Reset()
 	hostBcStaticData.currLevel = 0;
 
 	// re-initialize to all zeros
-	for (int i = 0; i < custing.nv; i++)
+	for (int i = 0; i < hostBcStaticData.nv; i++)
 	{
 		hostBcStaticData.offsets[i] = 0;
 	}
@@ -86,6 +86,9 @@ void StaticBC::Run(cuStinger& custing)
 
 	cusLoadBalance cusLB(hostBcStaticData.nv);
 
+	// Clear out array values first
+	allVinG_TraverseVertices<bcOperator::clearArrays>(custing,deviceBcStaticData);
+
 	allVinG_TraverseVertices<bcOperator::setLevelInfinity>(custing,deviceBcStaticData);
 	hostBcStaticData.queue.enqueueFromHost(hostBcStaticData.root);
 
@@ -97,13 +100,19 @@ void StaticBC::Run(cuStinger& custing)
 	while( hostBcStaticData.queue.getActiveQueueSize() > 0)
 	{
 
-		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing,
+		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing, 
 			deviceBcStaticData,cusLB,hostBcStaticData.queue);
 
 
-		// Update offsets for queue size
-		hostBcStaticData.offsets[hostBcStaticData.currLevel] = hostBcStaticData.queue.getActiveQueueSize();
-
+		if (hostBcStaticData.currLevel == 0)
+		{
+			// Frontier 0 is always size 1 because it's just the root
+			hostBcStaticData.offsets[hostBcStaticData.currLevel] = 1;
+		} else {
+			// Update offsets for queue size
+			vertexId_t level = hostBcStaticData.currLevel;
+			hostBcStaticData.offsets[level] = hostBcStaticData.queue.getActiveQueueSize() + hostBcStaticData.offsets[level - 1];
+		}
 
 		SyncHostWithDevice();
 		hostBcStaticData.queue.setQueueCurr(prevEnd);
@@ -114,237 +123,70 @@ void StaticBC::Run(cuStinger& custing)
 	}
 }
 
-// __global__ void StaticBC::DependencyAccumulation(cuStinger& custing, float *bc)
-// {
-// 	// We want to traverse backwards from Queue
-// 	// Walk back from the queue in reverse
-// 	// vertexQueue vxQueue = hostBcStaticData.queue;
-	
-// 	// will be length nv
-// 	vertexId_t *vxQueue = new vertexId_t[custing.nv];
-// 	// copy all data over from device
-// 	copyArrayDeviceToHost(hostBcStaticData.queue.getQueue(), vxQueue, custing.nv, sizeof(vertexId_t));
 
-// 	// vxQueue.setQueueCurr(0);  // 0 is the position of the cu
-// 	// vertexId_t *start = vxQueue.getQueue();
-// 	// vertexId_t *end = vxQueue.getQueue() + vxQueue.getQueueEnd() - 1;
-
-// 	vertexId_t nv = custing.nv;
-
-// 	vertexId_t* level = new vertexId_t[nv];
-// 	long *sigma = new long[nv];
-// 	float *delta = new float[nv];
-
-// 	copyArrayDeviceToHost(hostBcStaticData.level, level, nv, sizeof(vertexId_t));
-// 	copyArrayDeviceToHost(hostBcStaticData.sigma, sigma, nv, sizeof(long));
-// 	copyArrayDeviceToHost(hostBcStaticData.delta, delta, nv, sizeof(float));
-
-// 	printf("Begin Dep accumulation\n");
-
-// 	int idx = custing.nv - 1;
-
-// 	// Keep iterating backwards in the queue
-// 	while (idx >= 0)
-// 	{
-// 		// Look at adjacencies for this vertex at end
-// 		vertexId_t w = vxQueue[idx];
-// 		printf("Looking at all neighbors of vertex %d\n", w);
-// 		length_t numNeighbors = (custing.getHostVertexData()->used)[w];
-// 		printf("Num neighbors: %d\n", numNeighbors);
-// 		if (numNeighbors > 0)
-// 		{
-// 			// Get adjacency list
-// 			printf("Get adjacency list\n");
-// 			cuStinger::cusEdgeData *adj = (custing.getHostVertexData()->adj)[w];
-// 			for(int k = 0; k < numNeighbors; k++)
-// 			{
-// 				// neighbord v of w from the adjacency list
-// 				vertexId_t v = adj->dst[k];
-// 				// if depth is less than depth of w
-// 				if (level[v] == level[w] + 1)
-// 				{
-// 					printf("{%d} is a neighbor of {%d} at depth +1\n", v, w);
-// 					delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
-// 				}
-// 			}
-// 		}
-
-// 		// Now, put values into bc[]
-// 		if (w != hostBcStaticData.root)
-// 		{
-// 			bc[w] += delta[w];
-// 		}
-
-// 		idx--;
-// 	}
-
-// 	delete[] level;
-// 	delete[] sigma;
-// 	delete[] delta;
-// }
-
-void StaticBC::DependencyAccumulation(cuStinger& custing, float *bc)
+void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, float *bc)
 {
-	// We want to traverse backwards from Queue
-	// Walk back from the queue in reverse
-	// vertexQueue vxQueue = hostBcStaticData.queue;
-	
-	// will be length nv
-	// vertexId_t *vxQueue = new vertexId_t[custing.nv];
-	// // copy all data over from device
-	// copyArrayDeviceToHost(hostBcStaticData.queue.getQueue(), vxQueue, custing.nv, sizeof(vertexId_t));
+	// for load balancing
+	cusLoadBalance cusLB(hostBcStaticData.nv);
 
-	// // vxQueue.setQueueCurr(0);  // 0 is the position of the cu
-	// // vertexId_t *start = vxQueue.getQueue();
-	// // vertexId_t *end = vxQueue.getQueue() + vxQueue.getQueueEnd() - 1;
+	printf("Original currLevel: %d\n", hostBcStaticData.currLevel);
 
-	// vertexId_t nv = custing.nv;
-
-	// vertexId_t* level = new vertexId_t[nv];
-	// long *sigma = new long[nv];
-	// float *delta = new float[nv];
-
-	// copyArrayDeviceToHost(hostBcStaticData.level, level, nv, sizeof(vertexId_t));
-	// copyArrayDeviceToHost(hostBcStaticData.sigma, sigma, nv, sizeof(long));
-	// copyArrayDeviceToHost(hostBcStaticData.delta, delta, nv, sizeof(float));
-
-	// printf("Begin Dep accumulation\n");
-
-	// int idx = custing.nv - 1;
-
-	// // Keep iterating backwards in the queue
-	// while (idx >= 0)
-	// {
-	// 	// Look at adjacencies for this vertex at end
-	// 	vertexId_t w = vxQueue[idx];
-	// 	printf("Looking at all neighbors of vertex %d\n", w);
-	// 	length_t numNeighbors = (custing.getHostVertexData()->used)[w];
-	// 	printf("Num neighbors: %d\n", numNeighbors);
-	// 	if (numNeighbors > 0)
-	// 	{
-	// 		// Get adjacency list
-	// 		printf("Get adjacency list\n");
-	// 		cuStinger::cusEdgeData *adj = (custing.getHostVertexData()->adj)[w];
-	// 		for(int k = 0; k < numNeighbors; k++)
-	// 		{
-	// 			// neighbord v of w from the adjacency list
-	// 			vertexId_t v = adj->dst[k];
-	// 			// if depth is less than depth of w
-	// 			if (level[v] == level[w] + 1)
-	// 			{
-	// 				printf("{%d} is a neighbor of {%d} at depth +1\n", v, w);
-	// 				delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
-	// 			}
-	// 		}
-	// 	}
-
-	// 	// Now, put values into bc[]
-	// 	if (w != hostBcStaticData.root)
-	// 	{
-	// 		bc[w] += delta[w];
-	// 	}
-
-	// 	idx--;
-	// }
-
-	// delete[] level;
-	// delete[] sigma;
-	// delete[] delta;
-
-
-	// TODO: FIXME
-	// float *dev_bc;
-	// vertexId_t *queue = hostBcStaticData.queue.getQueue();
-	// checkCudaErrors(cudaMalloc(&dev_bc, sizeof(float) * custing.nv));
-	// hostDependencyAccumulation<<<1, 1>>>(custing.devicePtr(), deviceBcStaticData, queue, dev_bc);
-
-	// float *delta = new float[custing.nv];
-	// copyArrayDeviceToHost(dev_bc, delta, custing.nv, sizeof(float));
-
-
-	// for (int i = 0; i < custing.nv; i++)
-	// {
-	// 	bc[i] += delta[i];
-	// }
-
-	// // Free host mem
-	// delete[] delta;
-	// // free cuda mem
-	// checkCudaErrors(cudaFree(dev_bc));
-
-	int total_size = 0;
-
-	printf("Offsets/ Frontier sizes\n");
-	for (int i = 0; i < custing.nv; i++)
+	for (int i = 0; i < hostBcStaticData.nv; i++)
 	{
-		int off = hostBcStaticData.offsets[i];
-		if (off > 0)
+		if (hostBcStaticData.offsets[i] > 0 || i < 2)
 		{
-			printf("[%d] -> %d\n", i, off);
-			total_size += off;
+			printf("LEVEL: %d-->%d\n", i, hostBcStaticData.offsets[i]);
 		}
 	}
-	printf("Total size: %d\n", total_size);
-}
 
+	// Iterate backwards through depths
+	// Begin with the 2nd deepest frontier as the active queue
+	hostBcStaticData.currLevel -= 2;
+	// hostBcStaticData.currLevel = -1;
+	// SyncHostWithDevice();
+	printf("New currLevel: %d\n", hostBcStaticData.currLevel);
 
-__global__ void hostDependencyAccumulation(cuStinger *custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *dev_bc)
-{
-	printf("Global dep accum\n");
-	deviceDependencyAccumulation(custing, deviceBcStaticData, queue, dev_bc);
-	printf("Done with hostDependencyAccumulation\n");
-}
-
-__device__ void deviceDependencyAccumulation(cuStinger* custing, bcStaticData *deviceBcStaticData, vertexId_t *queue, float *bc)
-{
-	printf("Device dep accum\n");
-	// Iterate backwards over queue
-	vertexId_t nv = custing->nv;
-	int idx = nv - 1;
-
-
-	vertexId_t* level = deviceBcStaticData->level;
-	long *sigma = deviceBcStaticData->sigma;
-	float *delta = deviceBcStaticData->delta;
-
-
-	while (idx >= 0)
+	while (hostBcStaticData.currLevel >= -1)
 	{
-		vertexId_t w = queue[idx];
+		length_t start = hostBcStaticData.offsets[hostBcStaticData.currLevel];
+		length_t end = hostBcStaticData.offsets[hostBcStaticData.currLevel + 1];
 
-		printf("Looking at vertex w: {%d}\n", w);
-		// Look at all neighbors
+		printf("START: %d\t\tEND: %d\n", start, end);
+		
+		// set queue start and end so the queue holds all nodes in one frontier
+		hostBcStaticData.queue.setQueueCurr(start);
+		hostBcStaticData.queue.setQueueEnd(end);
+		SyncDeviceWithHost();
 
-		length_t numNeighbors = (custing->dVD->used)[w];
-		printf("Num neighbors: %d\n", numNeighbors);
-		if (numNeighbors > 0)
-		{
-			// Get adjacency list
-			printf("Get adjacency list\n");
-			cuStinger::cusEdgeData *adj = (custing->dVD->adj)[w];
-			for(int k = 0; k < numNeighbors; k++)
-			{
-				// neighbord v of w from the adjacency list
-				vertexId_t v = adj->dst[k];
-				// if depth is less than depth of w
-				if (level[v] == level[w] + 1)
-				{
-					printf("{%d} is a neighbor of {%d} at depth +1\n", v, w);
-					delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
-				}
-			}
-		}
+		printf("ACTIVE Q SIZE: %d\n", hostBcStaticData.queue.getActiveQueueSize());
 
-		// // Now, put values into bc
-		if (w != deviceBcStaticData->root)
-		{
-			bc[w] = delta[w];
-		}
+		// Now, run the macro for all outbound edges over this queue
 
-		idx--;
+		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcStaticData, cusLB, hostBcStaticData.queue);
+		printf("End loop\n");
+		
+		hostBcStaticData.currLevel -= 1;
+		// SyncHostWithDevice();
+		SyncDeviceWithHost();
 	}
 
-	printf("Done with deviceDependencyAccumulation\n");
+	printf("Copying device to host\n");
+
+	// Now, copy over delta values to host
+	copyArrayDeviceToHost(hostBcStaticData.delta, delta_copy, 1, hostBcStaticData.nv * sizeof(float));
+
+	// Finally, update the bc values
+	for (vertexId_t w = 0; w < hostBcStaticData.nv; w++)
+	{
+		if (w != hostBcStaticData.root)
+		{
+			bc[w] += delta_copy[w];
+		}
+	}
+
+	printf("Done with bc vals\n");
+
 }
+
 
 } // cuStingerAlgs namespace 
