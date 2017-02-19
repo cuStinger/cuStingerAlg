@@ -252,43 +252,28 @@ int main(const int argc, char **argv)
 
 	cout << "Num edges: " << numBatchEdges << endl;
 
-	BatchUpdateData bud(numBatchEdges, true);
+	// BatchUpdateData bud(numBatchEdges, true);
 
-	if (!isRmat) {
-		generateEdgeUpdates(nv, numBatchEdges, bud.getSrc(),bud.getDst());
-	}
-	BatchUpdate bu(bud);
+	// if (!isRmat) {
+	// 	generateEdgeUpdates(nv, numBatchEdges, bud.getSrc(),bud.getDst());
+	// }
+	// BatchUpdate bu(bud);
 
-	// Print stats before insertions
-	cout << "Before Insertions:" << endl;
-	printcuStingerUtility(custing);
-
-	// Insert these edges
-	length_t allocs;
-	custing.edgeInsertions(bu, allocs);
-	cout << "After Insertions:" << endl;
-	printcuStingerUtility(custing);
-
-
-	// Now, delete them
-	custing.edgeDeletions(bu);
-	cout << "After Deletions:" << endl;
-	printcuStingerUtility(custing);
-
-	// Print custinger utility
+	// // Print stats before insertions
+	// cout << "Before Insertions:" << endl;
 	// printcuStingerUtility(custing);
 
-	// cus_kernel_call call_kernel = bc_static;
-	// call_kernel(custing, NULL);
+	// // Insert these edges
+	// length_t allocs;
+	// custing.edgeInsertions(bu, allocs);
+	// cout << "After Insertions:" << endl;
+	// printcuStingerUtility(custing);
 
-	// call_kernel = connectComponentsMain;
-	// call_kernel(custing,NULL);
 
-	// call_kernel = connectComponentsMainLocal;
-	// call_kernel(custing,NULL);
-
-	// call_kernel = oneMoreMain;
-	// call_kernel(custing,NULL);
+	// // Now, delete them
+	// custing.edgeDeletions(bu);
+	// cout << "After Deletions:" << endl;
+	// printcuStingerUtility(custing);
 
 	float *bc = new float[nv];
 	for (int k = 0; k < nv; k++)
@@ -296,16 +281,15 @@ int main(const int argc, char **argv)
 		bc[k] = 0;
 	}
 
-	vertexId_t root;
+	float *delta_copy = new float[nv];
+
+	vertexId_t root = 0;
 	int rootsVisited = 0;
 
 	StaticBC sbc;
 	sbc.Init(custing);
 	sbc.Reset();
 
-	// vertexId_t* level = new vertexId_t[nv];
-	// long *sigma = new long[nv];
-	// float *delta = new float[nv];
 
 	while (rootsVisited < options.numRoots)
 	{
@@ -314,7 +298,9 @@ int main(const int argc, char **argv)
 		// Get a rood node
 		if (options.approx)
 		{
-			root = rand() % nv;
+			// TODO: choose roots in a better way
+			// root = rand() % nv;
+			root += 1;
 		} else
 		{
 			root = rootsVisited;
@@ -332,61 +318,8 @@ int main(const int argc, char **argv)
 		cout << "The number of elements found  : " << sbc.getElementsFound() << endl;
 		cout << "Total time for connected-BFS : " << totalTime << endl;
 
-
-		// // Dependency accumulation
-		// // Walk back from the queue in reverse
-		// vertexQueue queue = sbc.hostBcStaticData.queue;
-		// queue.setQueueCurr(0);  // 0 is the position of the
-		// vertexId_t *start = queue.getQueue();
-		// vertexId_t *end = queue.getQueue() + queue.getQueueEnd() - 1;
-
-
-		// // Update host copies of level, sigma, delta
-		// copyArrayDeviceToHost(sbc.hostBcStaticData.level, level, nv, sizeof(vertexId_t));
-		// copyArrayDeviceToHost(sbc.hostBcStaticData.sigma, sigma, nv, sizeof(long));
-		// copyArrayDeviceToHost(sbc.hostBcStaticData.delta, delta, nv, sizeof(float));
-
-		// // vertexId_t* level = sbc.hostBcStaticData.level;
-		// // long *sigma = sbc.hostBcStaticData.sigma;
-		// // float *delta = sbc.hostBcStaticData.delta;
-
-		// printf("Begin Dep accumulation\n");
-
-		// // Keep iterating backwards in the queue
-		// while (end >= start)
-		// {
-		// 	// Look at adjacencies for this vertex at end
-		// 	vertexId_t w = *end;
-		// 	printf("Looking at all neighbors of vertex %d\n", w);
-		// 	// length_t numNeighbors = (custing.getHostVertexData()->used)[w];
-		// 	// if (numNeighbors > 0)
-		// 	// {
-		// 	// 	// Get adjacency list
-		// 	// 	cuStinger::cusEdgeData *adj = (custing.getHostVertexData()->adj)[w];
-		// 	// 	for(int k = 0; k < numNeighbors; k++)
-		// 	// 	{
-		// 	// 		// neighbord v of w from the adjacency list
-		// 	// 		vertexId_t v = adj->dst[k];
-		// 	// 		// if depth is less than depth of w
-		// 	// 		if (level[v] == level[w] + 1)
-		// 	// 		{
-		// 	// 			printf("{} is a neighbor of {} at depth +1\n", v, w);
-		// 	// 			delta[v] += (delta[v] / delta[w]) * (1 + delta[w]);
-		// 	// 		}
-		// 	// 	}
-		// 	// }
-
-		// 	// Now, put values into bc[]
-		// 	if (w != root)
-		// 	{
-		// 		bc[w] += delta[w];
-		// 	}
-
-		// 	end--;
-		// }
-
-		// Now, reset the queue
-		sbc.DependencyAccumulation(custing, bc);
+		printf("Starting DependencyAccumulation\n");
+		sbc.DependencyAccumulation(custing, delta_copy, bc);
 		printf("Done with iteration. Reset queue\n");
 		sbc.Reset();
 	}
@@ -405,9 +338,7 @@ int main(const int argc, char **argv)
 	custing.freecuStinger();
 
 	delete[] bc;
-	// delete[] level;
-	// delete[] sigma;
-	// delete[] delta;
+	delete[] delta_copy;
 
 	free(off);
 	free(adj);
