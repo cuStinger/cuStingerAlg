@@ -276,12 +276,12 @@ int main(const int argc, char **argv)
 	// printcuStingerUtility(custing);
 
 	float *bc = new float[nv];
+	float *delta_copy = new float[nv];
 	for (int k = 0; k < nv; k++)
 	{
 		bc[k] = 0;
+		delta_copy[k] = 0;
 	}
-
-	float *delta_copy = new float[nv];
 
 	vertexId_t root = 0;
 	int rootsVisited = 0;
