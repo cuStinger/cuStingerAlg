@@ -113,7 +113,7 @@ public:
 		vertexId_t src, vertexId_t dst, void* metadata)
 	{
 		bcStaticData* bcd = (bcStaticData*) metadata;
-		vertexId_t nextLevel = bcd->currLevel + 1;
+		// vertexId_t nextLevel = bcd->currLevel + 1;
 
 		vertexId_t *d = bcd->level;  // depth
 		unsigned long long *sigma = bcd->sigma;
@@ -122,10 +122,10 @@ public:
 		vertexId_t v = src;
 		vertexId_t w = dst;
 
-		if (d[w] == nextLevel)
+		if (d[w] == d[v] + 1)
 		{
 			printf("[%d]->[%d]\tsigma[w]: %llu\tdelta[w]: %f\tsigma[v]: %llu\tdelta[v]: %f\n", w, v, sigma[w], delta[w], sigma[v], delta[v]);
-			atomicAdd(delta + v, (sigma[v] / sigma[w]) * (1 + delta[w]));
+			atomicAdd(delta + v, ((float) sigma[v] / (float) sigma[w]) * (1 + delta[w]));
 			printf("[%d]->[%d]\tAFTER delta[v]: %f\n", w, v, delta[v]);
 		}
 	}
