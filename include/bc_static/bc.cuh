@@ -17,7 +17,7 @@ public:
 	vertexId_t root;
 	
 	int *d;  // depth
-	long *sigma;
+	unsigned long long *sigma;
 	float *delta;
 
 	int *offsets;  // length of each frontier. May have up to (custing.nv) frontiers
@@ -78,12 +78,15 @@ public:
 		bcStaticData* bcd = (bcStaticData*) metadata;
 		vertexId_t nextLevel = bcd->currLevel + 1;
 
-		vertexId_t prev = atomicCAS(bcd->level+dst, INT32_MAX, nextLevel);
+		vertexId_t v = src;
+		vertexId_t w = dst;
+
+		vertexId_t prev = atomicCAS(bcd->level + w, INT32_MAX, nextLevel);
 		if (prev == INT32_MAX) {
-			bcd->queue.enqueue(dst);
+			bcd->queue.enqueue(w);
 		}
-		if (bcd->level[dst] == nextLevel) {
-			bcd->sigma[dst] += bcd->sigma[src];
+		if (bcd->level[w] == nextLevel) {
+			atomicAdd(bcd->sigma + w, bcd->sigma[v]);
 		}
 
 	}
@@ -93,7 +96,7 @@ public:
 		vertexId_t src, void* metadata)
 	{
 		bcStaticData* bcd = (bcStaticData*) metadata;
-		bcd->d[src] = 0;
+		bcd->d[src] = INT32_MAX;
 		bcd->sigma[src] = 0;
 		bcd->delta[src] = 0.0;
 	}
@@ -109,21 +112,22 @@ public:
 	static __device__ __forceinline__ void dependencyAccumulation(cuStinger* custing,
 		vertexId_t src, vertexId_t dst, void* metadata)
 	{
-		printf("Start static algo\n");
 		bcStaticData* bcd = (bcStaticData*) metadata;
 		vertexId_t nextLevel = bcd->currLevel + 1;
 
 		vertexId_t *d = bcd->level;  // depth
-		long *sigma = bcd->sigma;
+		unsigned long long *sigma = bcd->sigma;
 		float *delta = bcd->delta;
 
-		if (d[dst] == nextLevel)
-		{
-			printf("Edge [%d]->[%d] is adjacent\n", src, dst);
-			delta[dst] += (sigma[dst] / sigma[src]) * (1 + delta[src]);
+		vertexId_t v = src;
+		vertexId_t w = dst;
 
+		if (d[w] == nextLevel)
+		{
+			printf("[%d]->[%d]\tsigma[w]: %llu\tdelta[w]: %f\tsigma[v]: %llu\tdelta[v]: %f\n", w, v, sigma[w], delta[w], sigma[v], delta[v]);
+			atomicAdd(delta + v, (sigma[v] / sigma[w]) * (1 + delta[w]));
+			printf("[%d]->[%d]\tAFTER delta[v]: %f\n", w, v, delta[v]);
 		}
-		printf("end static algo\n");
 	}
 
 }; // bcOperator
