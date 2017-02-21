@@ -124,9 +124,9 @@ public:
 
 		if (d[w] == d[v] + 1)
 		{
-			printf("[%d]->[%d]\tsigma[w]: %llu\tdelta[w]: %f\tsigma[v]: %llu\tdelta[v]: %f\n", w, v, sigma[w], delta[w], sigma[v], delta[v]);
+			// printf("[%d]->[%d]\tsigma[w]: %llu\tdelta[w]: %f\tsigma[v]: %llu\tdelta[v]: %f\n", w, v, sigma[w], delta[w], sigma[v], delta[v]);
 			atomicAdd(delta + v, ((float) sigma[v] / (float) sigma[w]) * (1 + delta[w]));
-			printf("[%d]->[%d]\tAFTER delta[v]: %f\n", w, v, delta[v]);
+			// printf("[%d]->[%d]\tAFTER delta[v]: %f\n", w, v, delta[v]);
 		}
 	}
 
