@@ -136,15 +136,15 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, flo
 	// for load balancing
 	cusLoadBalance cusLB(hostBcStaticData.nv);
 
-	printf("Original currLevel: %d\n", hostBcStaticData.currLevel);
+	// printf("Original currLevel: %d\n", hostBcStaticData.currLevel);
 
-	for (int i = 0; i < hostBcStaticData.nv; i++)
-	{
-		if (hostBcStaticData.offsets[i] > 0 || i < 2)
-		{
-			printf("LEVEL: %d-->%d\n", i, hostBcStaticData.offsets[i]);
-		}
-	}
+	// for (int i = 0; i < hostBcStaticData.nv; i++)
+	// {
+	// 	if (hostBcStaticData.offsets[i] > 0 || i < 2)
+	// 	{
+	// 		printf("LEVEL: %d-->%d\n", i, hostBcStaticData.offsets[i]);
+	// 	}
+	// }
 
 	// // copy sigmas over
 	// unsigned long long *h_sigma = new unsigned long long[custing.nv];
@@ -162,7 +162,7 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, flo
 	hostBcStaticData.currLevel -= 2;
 	// hostBcStaticData.currLevel = -1;
 	// SyncHostWithDevice();
-	printf("New currLevel: %d\n", hostBcStaticData.currLevel);
+	// printf("New currLevel: %d\n", hostBcStaticData.currLevel);
 
 	while (hostBcStaticData.currLevel >= -1)
 	{
@@ -178,7 +178,7 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, flo
 		}
 		length_t end = hostBcStaticData.offsets[hostBcStaticData.currLevel + 1];
 
-		printf("S: %d\tE: %d\n", start, end);
+		// printf("S: %d\tE: %d\n", start, end);
 		
 		// set queue start and end so the queue holds all nodes in one frontier
 		hostBcStaticData.queue.setQueueCurr(start);
@@ -204,11 +204,11 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, flo
 		}
 		if (delta_copy[w] > 1)
 		{
-			printf("GREATER THAN 1 =====> idx: %d\tval:%f\n", w, delta_copy[w]);
+			// printf("GREATER THAN 1 =====> idx: %d\tval:%f\n", w, delta_copy[w]);
 		}
 	}
 
-	printf("Done with bc vals\n");
+	// printf("Done with bc vals\n");
 
 }
 

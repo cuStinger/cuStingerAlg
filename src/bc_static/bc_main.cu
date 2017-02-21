@@ -327,10 +327,18 @@ int main(const int argc, char **argv)
 	// Release only once all iterations are done.
 	sbc.Release();
 
-	cout << "OUTCOME: " << endl;
+	cout << "RESULTS: " << endl;
+
+	float total = 0;
 
 	for (int k = 0; k < nv; k++)
 	{
+		total += bc[k];
+	}
+
+	for (int k = 0; k < nv; k++)
+	{
+		bc[k] /= total;
 		cout << "[ " << k  << " ]: " << bc[k] << endl;
 	}
 
