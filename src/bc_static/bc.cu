@@ -103,30 +103,38 @@ void StaticBC::Run(cuStinger& custing)
 		hostBcStaticData.sigma+hostBcStaticData.root, 1, sizeof(length_t));
 
 	length_t prevEnd = 1;
+	hostBcStaticData.offsets[0] = 1;
 	while( hostBcStaticData.queue.getActiveQueueSize() > 0)
 	{
 
 		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing, 
 			deviceBcStaticData,cusLB,hostBcStaticData.queue);
 
-
-		if (hostBcStaticData.currLevel == 0)
-		{
-			// Frontier 0 is always size 1 because it's just the root
-			hostBcStaticData.offsets[hostBcStaticData.currLevel] = 1;
-		} else {
-			// Update cumulative offsets from start of queue
-			vertexId_t level = hostBcStaticData.currLevel;
-			hostBcStaticData.offsets[level] = hostBcStaticData.queue.getActiveQueueSize() + hostBcStaticData.offsets[level - 1];
-		}
-
 		SyncHostWithDevice();  // update host
-		
+
+		// if (hostBcStaticData.currLevel == 0)
+		// {
+		// 	// Frontier 0 is always size 1 because it's just the root
+		// 	hostBcStaticData.offsets[0] = 1;
+		// } else {
+			// Update cumulative offsets from start of queue
+
 		hostBcStaticData.queue.setQueueCurr(prevEnd);
+		printf("QUEUE SIZE: %d\n", hostBcStaticData.queue.getActiveQueueSize());
+		
+		vertexId_t level = hostBcStaticData.currLevel;
+		hostBcStaticData.offsets[level+1] = hostBcStaticData.queue.getActiveQueueSize() + hostBcStaticData.offsets[level];
+		// }
+		
 		prevEnd = hostBcStaticData.queue.getQueueEnd();
 
 		hostBcStaticData.currLevel++;
 		SyncDeviceWithHost();  // update device
+	}
+
+	for (int k = 0; k <= hostBcStaticData.currLevel; k++)
+	{
+		printf("{%d} --> %d]\n", k, hostBcStaticData.offsets[k]);
 	}
 }
 
@@ -161,10 +169,10 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, flo
 	// Begin with the 2nd deepest frontier as the active queue
 	hostBcStaticData.currLevel -= 2;
 	// hostBcStaticData.currLevel = -1;
-	// SyncHostWithDevice();
+	SyncDeviceWithHost();
 	// printf("New currLevel: %d\n", hostBcStaticData.currLevel);
 
-	while (hostBcStaticData.currLevel >= -1)
+	while (hostBcStaticData.currLevel >= 0)
 	{
 		length_t start;
 		if (hostBcStaticData.currLevel >= 0)
@@ -178,16 +186,21 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, flo
 		}
 		length_t end = hostBcStaticData.offsets[hostBcStaticData.currLevel + 1];
 
-		// printf("S: %d\tE: %d\n", start, end);
+		printf("LV: %d\n", hostBcStaticData.currLevel);
+		printf("S: %d\tE: %d\n", start, end);
+		fflush(stdout);
 		
-		// set queue start and end so the queue holds all nodes in one frontier
+		// // set queue start and end so the queue holds all nodes in one frontier
 		hostBcStaticData.queue.setQueueCurr(start);
 		hostBcStaticData.queue.setQueueEnd(end);
+		hostBcStaticData.queue.SyncDeviceWithHost();
 		SyncDeviceWithHost();
 
 		// Now, run the macro for all outbound edges over this queue
 		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcStaticData, cusLB, hostBcStaticData.queue);
 		
+		SyncHostWithDevice();
+
 		hostBcStaticData.currLevel -= 1;
 		SyncDeviceWithHost();
 	}
@@ -195,7 +208,7 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, flo
 	// Now, copy over delta values to host
 	copyArrayDeviceToHost(hostBcStaticData.delta, delta_copy, hostBcStaticData.nv, sizeof(float));
 
-	// Finally, update the bc values
+	// // Finally, update the bc values
 	for (vertexId_t w = 0; w < hostBcStaticData.nv; w++)
 	{
 		if (w != hostBcStaticData.root)
@@ -204,11 +217,11 @@ void StaticBC::DependencyAccumulation(cuStinger& custing, float *delta_copy, flo
 		}
 		if (delta_copy[w] > 1)
 		{
-			// printf("GREATER THAN 1 =====> idx: %d\tval:%f\n", w, delta_copy[w]);
+			printf("GREATER THAN 1 =====> idx: %d\tval:%f\n", w, delta_copy[w]);
 		}
 	}
 
-	// printf("Done with bc vals\n");
+	printf("Done with bc vals\n");
 
 }
 
