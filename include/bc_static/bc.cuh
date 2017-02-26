@@ -34,9 +34,6 @@ public:
 	void Run(cuStinger& custing);
 	void Release();
 
-	// delta_copy is an array on the host storing delta values from the device
-	void DependencyAccumulation(cuStinger& custing, float *delta_copy, float *bc);
-
 	void SyncHostWithDevice()
 	{
 		copyArrayDeviceToHost(deviceBcStaticData, &hostBcStaticData, 1, sizeof(bcStaticData));
@@ -45,11 +42,14 @@ public:
 	{
 		copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bcStaticData));
 	}
-	
-	length_t getLevels(){return hostBcStaticData.currLevel;}
-	length_t getElementsFound(){return hostBcStaticData.queue.getQueueEnd();}
 
-	void setInputParameters(vertexId_t root);
+	void RunBfsTraversal(cuStinger& custing);
+	void DependencyAccumulation(cuStinger& custing);
+	
+	length_t getLevel() { return hostBcStaticData.currLevel; }
+
+	// Must pass in a root node vertex id, and a pointer to bc values (of length custing.nv)
+	void setInputParameters(vertexId_t root, float *bc_array);
 
 	// User is responsible for de-allocating memory.
 	vertexId_t* getLevelArrayHost()
@@ -66,6 +66,11 @@ public:
 	}
 
 	bcStaticData hostBcStaticData, *deviceBcStaticData;
+
+private:
+	float *bc;  // the actual bc values array on the host
+	// a float array which will contain a copy of the device delta array during dependency accumulation
+	float *host_deltas;
 };
 
 
@@ -123,13 +128,7 @@ public:
 
 		if (d[w] == d[v] + 1)
 		{
-			// printf("[%d]->[%d]\tsigma[w]: %llu\tdelta[w]: %f\tsigma[v]: %llu\tdelta[v]: %f\n", w, v, sigma[w], delta[w], sigma[v], delta[v]);
 			atomicAdd(delta + v, ((float) sigma[v] / (float) sigma[w]) * (1 + delta[w]));
-			// printf("[%d]->[%d]\tAFTER delta[v]: %f\n", w, v, delta[v]);
-			if (sigma[v] > sigma[w])
-			{
-				printf("sigma[v] > sigma[w]: %f >>>> %f *********************\n", sigma[v], sigma[w]);
-			}
 		}
 	}
 
