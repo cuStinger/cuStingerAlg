@@ -29,6 +29,28 @@ using namespace std;
 
 typedef void (*cus_kernel_call)(cuStinger& custing, void* func_meta_data);
 
+typedef struct
+{
+	bool streaming;
+	bool approx;
+	// number of vertices used. If approx, set here via CLI.
+	// otherwise defaults to all vertices
+	int numRoots;
+	bool verbose;  // print debug info
+	int edgesToAdd;  // edges to add
+	char *infile;
+} program_options;
+
+
+program_options options;
+
+
+bool isDimacs = false;
+bool isSNAP = false;
+bool isRmat = false;
+length_t nv, ne, *off;
+vertexId_t *adj;
+
 void printUsageInfo(char **argv)
 {
 	cout << "Usage: " << argv[0];
@@ -46,21 +68,6 @@ void printUsageInfo(char **argv)
 	cout << "-t <# of nodes to add>  \tStreaming BC" << endl;
 	cout << endl;
 }
-
-typedef struct
-{
-	bool streaming;
-	bool approx;
-	// number of vertices used. If approx, set here via CLI.
-	// otherwise defaults to all vertices
-	int numRoots;
-	bool verbose;  // print debug info
-	int edgesToAdd;  // edges to add
-	char *infile;
-} program_options;
-
-
-program_options options;
 
 
 void parse_arguments(int argc, char **argv)
@@ -137,10 +144,10 @@ void parse_arguments(int argc, char **argv)
 	}
 }
 
-void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc,
-	vertexId_t* edgeDst)
+
+void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst)
 {
-		cout << "Edge Updates: " << endl;
+	cout << "Edge Updates: " << endl;
 	for(int32_t e=0; e<numEdges; e++) {
 		edgeSrc[e] = rand()%nv;
 		edgeDst[e] = rand()%nv;
@@ -150,39 +157,67 @@ void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc,
 	}
 }
 
-// TODO: Implement later
-// For RMAT edges
-// typedef struct dxor128_env {
-//   unsigned x,y,z,w;
-// } dxor128_env_t;
 
-// void rmat_edge (int64_t * iout, int64_t * jout, int SCALE, double A, double B, double C, double D, dxor128_env_t * env);
-
-// void generateEdgeUpdatesRMAT(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst,double A, double B, double C, double D, dxor128_env_t * env){
-// 	int64_t src,dst;
-// 	int scale = (int)log2(double(nv));
-// 	for(int32_t e=0; e<numEdges; e++){
-// 		rmat_edge(&src,&dst,scale, A,B,C,D,env);
-// 		edgeSrc[e] = src;
-// 		edgeDst[e] = dst;
-
-// 		cout << "Edge: (" << edgeSrc[e] << ", " << edgeDst[e] << ")";
-// 		cout << endl;
-// 	}
-// }
-
-void printcuStingerUtility(cuStinger custing)
+void rmat_edge (int64_t * iout, int64_t * jout, int SCALE, double A, double B, double C, double D)
 {
-	length_t used,allocated;
+  int64_t i = 0, j = 0;
+  int64_t bit = ((int64_t) 1) << (SCALE - 1);
 
-	used = custing.getNumberEdgesUsed();
-	allocated = custing.getNumberEdgesAllocated();
-	cout << "Used: " << used << "\tAllocated: " << allocated;
-	cout << "\tRatio Used-To-Allocated: " << (float)used/(float)allocated << endl;
+  while (1) {
+    const double r =  ((double) rand() / (RAND_MAX));//dxor128(env);
+    if (r > A) {                /* outside quadrant 1 */
+      if (r <= A + B)           /* in quadrant 2 */
+        j |= bit;
+      else if (r <= A + B + C)  /* in quadrant 3 */
+        i |= bit;
+      else {                    /* in quadrant 4 */
+        j |= bit;
+        i |= bit;
+      }
+    }
+    if (1 == bit)
+      break;
+
+    /*
+      Assuming R is in (0, 1), 0.95 + 0.1 * R is in (0.95, 1.05).
+      So the new probabilities are *not* the old +/- 10% but
+      instead the old +/- 5%.
+    */
+    A *= (9.5 + ((double) rand() / (RAND_MAX))) / 10;
+    B *= (9.5 + ((double) rand() / (RAND_MAX))) / 10;
+    C *= (9.5 + ((double) rand() / (RAND_MAX))) / 10;
+    D *= (9.5 + ((double) rand() / (RAND_MAX))) / 10;
+    /* Used 5 random numbers. */
+
+    {
+      const double norm = 1.0 / (A + B + C + D);
+      A *= norm;
+      B *= norm;
+      C *= norm;
+    }
+    /* So long as +/- are monotonic, ensure a+b+c+d <= 1.0 */
+    D = 1.0 - (A + B + C);
+
+    bit >>= 1;
+  }
+  /* Iterates SCALE times. */
+  *iout = i;
+  *jout = j;
 }
 
 
-int main(const int argc, char **argv)
+void generateEdgeUpdatesRMAT(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst,double A, double B, double C, double D){
+	int64_t src,dst;
+	int scale = (int)log2(double(nv));
+	for(int32_t e=0; e<numEdges; e++){
+		rmat_edge(&src,&dst,scale, A,B,C,D);
+		edgeSrc[e] = src;
+		edgeDst[e] = dst;
+	}
+}
+
+
+cuStinger *setupGraph(const int argc, char **argv)
 {
 	parse_arguments(argc, argv);
 
@@ -191,15 +226,6 @@ int main(const int argc, char **argv)
 	cudaDeviceProp prop;
 	cudaGetDeviceProperties(&prop, device);
 
-	int max_threads_per_block = prop.maxThreadsPerBlock;
-	int number_of_SMs = prop.multiProcessorCount;
-
-    length_t nv, ne,*off;
-    vertexId_t *adj;
-
-	bool isDimacs = false;
-	bool isSNAP = false;
-	bool isRmat = false;
 	string filename(options.infile);
 
 	isDimacs = filename.find(".graph")==string::npos?false:true;
@@ -208,11 +234,9 @@ int main(const int argc, char **argv)
 
 	if(isDimacs){
 	    readGraphDIMACS(options.infile, &off, &adj, &nv, &ne, isRmat);
+	} else if(isSNAP){
+	    readGraphSNAP(options.infile, &off, &adj, &nv, &ne);
 	}
-	// TODO: FIX THIS
-	// else if(isSNAP){
-	//     readGraphSNAP(options.infile, &off, &adj, &nv, &ne);
-	// }
 	else {
 		cout << "Unknown graph type" << endl;
 		exit(0);
@@ -228,7 +252,6 @@ int main(const int argc, char **argv)
 
 	cout << "Num Roots: " << options.numRoots << endl;
 
-	cudaEvent_t ce_start,ce_stop;
 	cuStinger custing(defaultInitAllocater,defaultUpdateAllocater);
 
 	cuStingerInitConfig cuInit;
@@ -237,6 +260,7 @@ int main(const int argc, char **argv)
 	cuInit.useVWeight = false;
 	cuInit.isSemantic = false;  // Use edge types and vertex types
 	cuInit.useEWeight = false;
+	
 	// CSR data
 	cuInit.csrNV  = nv;
 	cuInit.csrNE = ne;
@@ -247,40 +271,21 @@ int main(const int argc, char **argv)
 
 	custing.initializeCuStinger(cuInit);
 
-	// First, we'll add some random edges
-	int numBatchEdges = options.edgesToAdd;
-
-	cout << "Num edges: " << numBatchEdges << endl;
-
-	// BatchUpdateData bud(numBatchEdges, true);
-
-	// if (!isRmat) {
-	// 	generateEdgeUpdates(nv, numBatchEdges, bud.getSrc(),bud.getDst());
-	// }
-	// BatchUpdate bu(bud);
-
-	// // Print stats before insertions
-	// cout << "Before Insertions:" << endl;
-	// printcuStingerUtility(custing);
-
-	// // Insert these edges
-	// length_t allocs;
-	// custing.edgeInsertions(bu, allocs);
-	// cout << "After Insertions:" << endl;
-	// printcuStingerUtility(custing);
+	return &custing;
+}
 
 
-	// // Now, delete them
-	// custing.edgeDeletions(bu);
-	// cout << "After Deletions:" << endl;
-	// printcuStingerUtility(custing);
+int main(const int argc, char **argv)
+{
 
+	cuStinger custing = *setupGraph(argc, argv);
+	length_t nv = custing.nv;
+
+	// Must free this memory afterwards
 	float *bc = new float[nv];
-	float *delta_copy = new float[nv];
 	for (int k = 0; k < nv; k++)
 	{
 		bc[k] = 0;
-		delta_copy[k] = 0;
 	}
 
 	vertexId_t root = 0;
@@ -290,39 +295,29 @@ int main(const int argc, char **argv)
 	sbc.Init(custing);
 	sbc.Reset();
 
+	cudaEvent_t ce_start,ce_stop;
+	start_clock(ce_start, ce_stop);
 
 	while (rootsVisited < options.numRoots)
 	{
-		printf("Iteration: %d of %d.\n", rootsVisited + 1, options.numRoots);
-
 		// Get a rood node
 		if (options.approx)
 		{
-			// TODO: choose roots in a better way
-			// root = rand() % nv;
-			root += 1;
+			root = rand() % nv;
 		} else
 		{
 			root = rootsVisited;
 		}
 		rootsVisited++;
 
-		// Now, set the root and run
-		sbc.setInputParameters(root);
-
-		start_clock(ce_start, ce_stop);
+		// Now, set the root node and the bc value array and run
+		sbc.setInputParameters(root, bc);
 		sbc.Run(custing);
-		float totalTime = end_clock(ce_start, ce_stop);
-
-		cout << "The number of levels          : " << sbc.getLevels() << endl;
-		cout << "The number of elements found  : " << sbc.getElementsFound() << endl;
-		cout << "Total time for connected-BFS : " << totalTime << endl;
-
-		printf("Starting DependencyAccumulation\n");
-		sbc.DependencyAccumulation(custing, delta_copy, bc);
-		printf("Done with iteration. Reset queue\n");
-		sbc.Reset();
+		sbc.Reset();  // clear out the queue and meta-data after every run
 	}
+
+	float totalTime = end_clock(ce_start, ce_stop);
+	cout << "Total time for Betweenness Centrality Computation: " << totalTime << endl;
 
 	// Release only once all iterations are done.
 	sbc.Release();
@@ -337,11 +332,10 @@ int main(const int argc, char **argv)
 	// Free memory
 	custing.freecuStinger();
 
-	delete[] bc;
-	delete[] delta_copy;
-
 	free(off);
 	free(adj);
+
+	delete[] bc;
 
     return 0;
 }
