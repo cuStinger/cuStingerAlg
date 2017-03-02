@@ -8,9 +8,9 @@
 #include "update.hpp"
 #include "cuStinger.hpp"
 
-#include "macros.cuh"
+#include "operators.cuh"
 
-#include "static_breadth_first_search/bfs.cuh"
+#include "static_breadth_first_search/bfs_top_down.cuh"
 
 // #include "load_balance.cuh"
 
@@ -20,7 +20,7 @@ using namespace std;
 namespace cuStingerAlgs {
 
 
-void StaticBreadthFirstSearch::Init(cuStinger& custing){
+void bfsTD::Init(cuStinger& custing){
 	hostBfsData.nv = custing.nv;
 	hostBfsData.queue.Init(custing.nv);
 
@@ -32,26 +32,26 @@ void StaticBreadthFirstSearch::Init(cuStinger& custing){
 	Reset();
 }
 
-void StaticBreadthFirstSearch::Reset(){
+void bfsTD::Reset(){
 	hostBfsData.queue.resetQueue();
 	hostBfsData.currLevel=0;
 
 	copyArrayHostToDevice(&hostBfsData,deviceBfsData,1, sizeof(bfsData));
 }
 
-void StaticBreadthFirstSearch::setInputParameters(vertexId_t root){
+void bfsTD::setInputParameters(vertexId_t root){
 	hostBfsData.root = root;
 }
 
 
 
-void StaticBreadthFirstSearch::Release(){
+void bfsTD::Release(){
 	freeDeviceArray(deviceBfsData);
 	freeDeviceArray(hostBfsData.level);
 }
 
 
-void StaticBreadthFirstSearch::Run(cuStinger& custing){
+void bfsTD::Run(cuStinger& custing){
 
 	cusLoadBalance cusLB(hostBfsData.nv);
 

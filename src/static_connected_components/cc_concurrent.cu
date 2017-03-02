@@ -9,7 +9,7 @@
 #include "update.hpp"
 #include "cuStinger.hpp"
 
-#include "macros.cuh"
+#include "operators.cuh"
 
 #include "static_connected_components/cc.cuh"
 

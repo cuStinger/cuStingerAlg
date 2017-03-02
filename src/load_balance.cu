@@ -6,7 +6,7 @@
 
 #include "load_balance.cuh"
 #include "algs.cuh"
-#include "macros.cuh"
+#include "operators.cuh"
 
 namespace cuStingerAlgs{
 

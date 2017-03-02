@@ -12,7 +12,9 @@
 
 #include "algs.cuh"
 
-#include "static_breadth_first_search/bfs.cuh"
+#include "static_breadth_first_search/bfs_top_down.cuh"
+#include "static_breadth_first_search/bfs_bottom_up.cuh"
+#include "static_breadth_first_search/bfs_hybrid.cuh"
 #include "static_connected_components/cc.cuh"
 #include "static_page_rank/pr.cuh"
 
@@ -51,7 +53,7 @@ int main(const int argc, char *argv[]){
 	    readGraphDIMACS(argv[1],&off,&adj,&nv,&ne,isRmat);
 	}
 	else if(isSNAP){
-	    readGraphSNAP(argv[1],&off,&adj,&nv,&ne);
+	    readGraphSNAP(argv[1],&off,&adj,&nv,&ne,isRmat);
 	}
 	else if(isMarket){
 		readGraphMatrixMarket(argv[1],&off,&adj,&nv,&ne,(isRmat)?false:true);
@@ -90,20 +92,20 @@ int main(const int argc, char *argv[]){
 	start_clock(ce_start, ce_stop);
 //	scc.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
-	cout << "The number of iterations           : " << scc.GetIterationCount() << endl;
-	cout << "The number of connected-compoents  : " << scc.CountConnectComponents(custing) << endl;
-	cout << "Total time for connected-compoents : " << totalTime << endl; 
+	// cout << "The number of iterations           : " << scc.GetIterationCount() << endl;
+	// cout << "The number of connected-compoents  : " << scc.CountConnectComponents(custing) << endl;
+	// cout << "Total time for connected-compoents : " << totalTime << endl; 
 	scc.Release();
 
 	ccConcurrent scc2;
 	scc2.Init(custing);
 	scc2.Reset();
 	start_clock(ce_start, ce_stop);
- //   scc2.Run(custing);
+    // scc2.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
-	cout << "The number of iterations           : " << scc2.GetIterationCount() << endl;
-	cout << "The number of connected-compoents  : " << scc2.CountConnectComponents(custing) << endl;
-	cout << "Total time for connected-compoents : " << totalTime << endl; 
+	// cout << "The number of iterations           : " << scc2.GetIterationCount() << endl;
+	// cout << "The number of connected-compoents  : " << scc2.CountConnectComponents(custing) << endl;
+	// cout << "Total time for connected-compoents : " << totalTime << endl; 
 	scc2.Release();
 
 
@@ -140,9 +142,9 @@ int main(const int argc, char *argv[]){
 			maxLen=off[v+1]-off[v];
 		}
 	}
-	cout << "Largest vertex is: " << maxV << "   With the length of :" << maxLen << endl;
+	// cout << "Largest vertex is: " << maxV << "   With the length of :" << maxLen << endl;
 
-	StaticBreadthFirstSearch bfs;
+	bfsTD bfs;
 	bfs.Init(custing);
 	bfs.Reset();
 	bfs.setInputParameters(maxV);
@@ -152,23 +154,72 @@ int main(const int argc, char *argv[]){
 
 	cout << "The number of levels          : " << bfs.getLevels() << endl;
 	cout << "The number of elements found  : " << bfs.getElementsFound() << endl;
-	cout << "Total time for connected-BFS : " << totalTime << endl; 
+	cout << "Total time for BFS - Top-Down : " << totalTime << endl; 
 
 	bfs.Release();
 
+	bfsBU bfsbu;
+	bfsbu.Init(custing);
+	bfsbu.Reset();
+	bfsbu.setInputParameters(maxV);
+	start_clock(ce_start, ce_stop);
+	// bfsbu.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
+
+	// cout << "The number of levels          : " << bfsbu.getLevels() << endl;
+	// cout << "The number of elements found  : " << bfsbu.getElementsFound(custing) << endl;
+	// cout << "Total time for BFS - Bottom-up: " << totalTime << endl; 
+
+	bfsbu.Release();
+
+	bfsHybrid bfsHy;
+	bfsHy.Init(custing);
+	bfsHy.Reset();
+	bfsHy.setInputParameters(maxV);
+	start_clock(ce_start, ce_stop);
+	// bfsHy.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
+
+	// cout << "The number of levels          : " << bfsHy.getLevels() << endl;
+	// cout << "The number of elements found  : " << bfsHy.getElementsFound(custing) << endl;
+	// cout << "Total time for BFS - Hybrid   : " << totalTime << endl; 
+
+	bfsHy.Release();
+
+
+
 	StaticPageRank pr;
+
 	pr.Init(custing);
 	pr.Reset();
 	pr.setInputParameters(5,0.001);
 	start_clock(ce_start, ce_stop);
-//	pr.Run(custing);
+	pr.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
 	cout << "The number of iterations      : " << pr.getIterationCount() << endl;
 	cout << "Total time for pagerank       : " << totalTime << endl; 
 	cout << "Average time per iteartion    : " << totalTime/(float)pr.getIterationCount() << endl; 
-	pr.printRankings(custing);
+	// pr.printRankings(custing);
 
 	pr.Release();
+
+
+	StaticPageRank pr2;// =new StaticPageRank();
+
+	pr2.Init(custing);
+	pr2.Reset();
+	pr2.setInputParameters(5,0.001);
+	start_clock(ce_start, ce_stop);
+	pr2.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
+	// cout << "The number of iterations      : " << pr2.getIterationCount() << endl;
+	// cout << "Total time for pagerank       : " << totalTime << endl; 
+	// cout << "Average time per iteartion    : " << totalTime/(float)pr2.getIterationCount() << endl; 
+	// pr2.printRankings(custing);
+
+	pr2.Release();
+
+
 
 
 	custing.freecuStinger();

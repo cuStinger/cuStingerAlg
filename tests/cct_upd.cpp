@@ -196,28 +196,31 @@ int InsertionTest(const int argc, char *argv[])
 	// Making of original custinger
 	    length_t nv, ne,*off;
 	    vertexId_t *adj;
-	    int isRmat=0;
 		int numEdges=100000;
 		if(argc>2)
 			numEdges=atoi(argv[2]);
-		if(argc>3)
-			isRmat  =atoi(argv[3]);
 		srand(100);
-		bool isDimacs,isSNAP;
+
+		bool isDimacs,isSNAP,isRmat=false,isMarket;
 		string filename(argv[1]);
 		isDimacs = filename.find(".graph")==std::string::npos?false:true;
 		isSNAP   = filename.find(".txt")==std::string::npos?false:true;
+		isRmat 	 = filename.find("kron")==std::string::npos?false:true;
+		isMarket = filename.find(".mtx")==std::string::npos?false:true;
 
 		if(isDimacs){
-		    readGraphDIMACS(argv[1],&off,&adj,&nv,&ne);
+		    readGraphDIMACS(argv[1],&off,&adj,&nv,&ne,isRmat);
 		}
 		else if(isSNAP){
-		    readGraphSNAP(argv[1],&off,&adj,&nv,&ne);
+		    readGraphSNAP(argv[1],&off,&adj,&nv,&ne,isRmat);
+		}
+		else if(isMarket){
+			readGraphMatrixMarket(argv[1],&off,&adj,&nv,&ne,(isRmat)?false:true);
 		}
 		else{ 
 			cout << "Unknown graph type" << endl;
 		}
-		cout << nv << ", " << ne;
+		cout << "Vertices: " << nv << "    Edges: " << ne << endl;
 
 		cudaEvent_t ce_start,ce_stop;
 

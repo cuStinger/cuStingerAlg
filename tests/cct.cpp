@@ -236,24 +236,26 @@ int main(const int argc, char *argv[]){
     length_t nv, ne,*off;
     vertexId_t *adj;
 
-	bool isDimacs,isSNAP,isRmat=false;
+	bool isDimacs,isSNAP,isRmat=false,isMarket;
 	string filename(argv[1]);
 	isDimacs = filename.find(".graph")==std::string::npos?false:true;
 	isSNAP   = filename.find(".txt")==std::string::npos?false:true;
 	isRmat 	 = filename.find("kron")==std::string::npos?false:true;
+	isMarket = filename.find(".mtx")==std::string::npos?false:true;
 
 	if(isDimacs){
 	    readGraphDIMACS(argv[1],&off,&adj,&nv,&ne,isRmat);
 	}
 	else if(isSNAP){
-	    readGraphSNAP(argv[1],&off,&adj,&nv,&ne);
+	    readGraphSNAP(argv[1],&off,&adj,&nv,&ne,isRmat);
+	}
+	else if(isMarket){
+		readGraphMatrixMarket(argv[1],&off,&adj,&nv,&ne,(isRmat)?false:true);
 	}
 	else{ 
 		cout << "Unknown graph type" << endl;
 	}
-
-	// cout << "Vertices " << nv << endl;
-	// cout << "Edges " << ne << endl;
+	cout << "Vertices: " << nv << "    Edges: " << ne << endl;
 
 	cudaEvent_t ce_start,ce_stop;
 	cuStinger custing(defaultInitAllocater,defaultUpdateAllocater);

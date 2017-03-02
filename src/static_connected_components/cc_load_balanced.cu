@@ -10,7 +10,7 @@
 #include "update.hpp"
 #include "cuStinger.hpp"
 
-#include "macros.cuh"
+#include "operators.cuh"
 
 #include "static_connected_components/cc.cuh"
 
@@ -21,6 +21,9 @@ void ccConcurrentLB::Init(cuStinger& custing){
 	hostCCData.currState = (vertexId_t*) allocDeviceArray(custing.nv+1, sizeof(vertexId_t));
 
 	deviceCCData = (ccDataBaseline*)allocDeviceArray(1, sizeof(ccDataBaseline));
+
+	cusLB = new cusLoadBalance(custing);
+
 	SyncDeviceWithHost();
 	Reset();
 }
@@ -36,13 +39,16 @@ void ccConcurrentLB::Reset(){
 
 
 void ccConcurrentLB::Release(){
+	free(cusLB);
 	freeDeviceArray(deviceCCData);
 	freeDeviceArray(hostCCData.currState);
 }
 
 void ccConcurrentLB::Run(cuStinger& custing){
 	cusLoadBalance cusLB(custing);
-	// cusLoadBalance cusLB(custing,true,true);
+
+
+//	// cusLoadBalance cusLB(custing,true,true);
 
 	allVinG_TraverseVertices<StaticConnectedComponentsOperator::init>(custing,deviceCCData);
 	hostCCData.iteration = 0;
@@ -50,6 +56,7 @@ void ccConcurrentLB::Run(cuStinger& custing){
 		hostCCData.changeCurrIter=0;
 
 		SyncDeviceWithHost();
+		// allVinA_TraverseEdges_LB<StaticConnectedComponentsOperator::swapLocal>(custing,deviceCCData,*cusLB);
 		allVinA_TraverseEdges_LB<StaticConnectedComponentsOperator::swapLocal>(custing,deviceCCData,cusLB);
 		allVinG_TraverseVertices<StaticConnectedComponentsOperator::shortcut>(custing,deviceCCData);
 		allVinG_TraverseVertices<StaticConnectedComponentsOperator::shortcut>(custing,deviceCCData);

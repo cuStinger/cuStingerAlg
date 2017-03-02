@@ -18,7 +18,7 @@
 #include "update.hpp"
 #include "cuStinger.hpp"
 
-#include "macros.cuh"
+#include "operators.cuh"
 
 #include "static_page_rank/pr.cuh"
 
