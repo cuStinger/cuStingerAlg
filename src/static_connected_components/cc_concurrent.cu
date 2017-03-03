@@ -18,7 +18,6 @@ namespace cuStingerAlgs {
 
 void ccConcurrent::Init(cuStinger& custing){
 	hostCCData.currState = (vertexId_t*) allocDeviceArray(custing.nv+1, sizeof(vertexId_t));
-	// hostCCData.prevState = (vertexId_t*) allocDeviceArray(custing.nv+1, sizeof(vertexId_t));
 
 	deviceCCData = (ccDataBaseline*)allocDeviceArray(1, sizeof(ccDataBaseline));
 	SyncDeviceWithHost();
@@ -33,13 +32,10 @@ void ccConcurrent::Reset(){
 	SyncDeviceWithHost();
 }
 
-
 void ccConcurrent::Release(){
 	freeDeviceArray(deviceCCData);
 	freeDeviceArray(hostCCData.currState);
-	// freeDeviceArray(hostCCData.prevState);
 }
-
 
 void ccConcurrent::Run(cuStinger& custing){
 	allVinG_TraverseVertices<StaticConnectedComponentsOperator::init>(custing,deviceCCData);
@@ -68,7 +64,6 @@ length_t ccConcurrent::CountConnectComponents(cuStinger& custing){
 length_t ccConcurrent::CountConnectComponentsAll(cuStinger& custing){
 	allVinG_TraverseVertices<StaticConnectedComponentsOperator::countAll>(custing,deviceCCData);
 	SyncHostWithDevice();
-
 
 	return hostCCData.connectedComponentCount;
 }

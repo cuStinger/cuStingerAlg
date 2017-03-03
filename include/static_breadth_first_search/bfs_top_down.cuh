@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algs.cuh"
+#include "operators.cuh"
 
 // Breadth First Search
 
@@ -9,7 +10,6 @@ namespace cuStingerAlgs {
 
 class bfsData {
 public:
-// struct bfsData{
 	vertexQueue queue;
 	vertexId_t* level;
 	vertexId_t currLevel;
@@ -18,7 +18,7 @@ public:
 };
 
 
-class StaticBreadthFirstSearch:public StaticAlgorithm{
+class bfsTD:public StaticAlgorithm{
 public:	
 
 	void Init(cuStinger& custing);
@@ -54,10 +54,11 @@ public:
 		copyArrayDeviceToHost(hostBfsData.level, hostArr, hostBfsData.nv, sizeof(vertexId_t) );
 	}
 
-	
 
-// protected: 
+protected: 
 	bfsData hostBfsData, *deviceBfsData;
+private: 
+	cusLoadBalance* cusLB;	
 };
 
 

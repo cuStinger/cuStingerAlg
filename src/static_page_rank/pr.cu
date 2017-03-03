@@ -42,6 +42,11 @@ void StaticPageRank::Init(cuStinger& custing){
 
 	devicePRData = (pageRankData*)allocDeviceArray(1, sizeof(pageRankData));
 	SyncDeviceWithHost();
+	// cusLoadBalance cusLB(custing);
+	// cusLoadBalance cusLB(custing,true,false);
+	// cusLoadBalance cusLB(custing,false,true);
+	cusLB = new cusLoadBalance(custing,false,true);
+
 
 	Reset();
 }
@@ -54,6 +59,7 @@ void StaticPageRank::Reset(){
 
 
 void StaticPageRank::Release(){
+	free(cusLB);	
 	freeDeviceArray(devicePRData);
 	freeDeviceArray(hostPRData.currPR);
 	freeDeviceArray(hostPRData.prevPR);
@@ -64,9 +70,6 @@ void StaticPageRank::Release(){
 }
 
 void StaticPageRank::Run(cuStinger& custing){
-	// cusLoadBalance cusLB(custing);
-	// cusLoadBalance cusLB(custing,true,false);
-	cusLoadBalance cusLB(custing,false,true);
 	cout << "The number of non zeros is : " << cusLB.currArrayLen << endl;
 
 	allVinG_TraverseVertices<StaticPageRankOperator::init>(custing,devicePRData);
@@ -77,11 +80,11 @@ void StaticPageRank::Run(cuStinger& custing){
 	while(hostPRData.iteration < hostPRData.iterationMax && h_out>hostPRData.threshhold){
 		SyncDeviceWithHost();
 
-		allVinA_TraverseVertices<StaticPageRankOperator::resetCurr>(custing,devicePRData,cusLB);
-		allVinA_TraverseVertices<StaticPageRankOperator::computeContribuitionPerVertex>(custing,devicePRData,cusLB);
-		allVinA_TraverseEdges_LB<StaticPageRankOperator::addContribuitionsUndirected>(custing,devicePRData,cusLB);
-		// allVinA_TraverseEdges_LB<StaticPageRankOperator::addContribuitions>(custing,devicePRData,cusLB);
-		allVinA_TraverseVertices<StaticPageRankOperator::dampAndDiffAndCopy>(custing,devicePRData,cusLB);
+		allVinA_TraverseVertices<StaticPageRankOperator::resetCurr>(custing,devicePRData,*cusLB);
+		allVinA_TraverseVertices<StaticPageRankOperator::computeContribuitionPerVertex>(custing,devicePRData,*cusLB);
+		allVinA_TraverseEdges_LB<StaticPageRankOperator::addContribuitionsUndirected>(custing,devicePRData,*cusLB);
+		// allVinA_TraverseEdges_LB<StaticPageRankOperator::addContribuitions>(custing,devicePRData,*cusLB);
+		allVinA_TraverseVertices<StaticPageRankOperator::dampAndDiffAndCopy>(custing,devicePRData,*cusLB);
 
 		// allVinG_TraverseVertices<StaticPageRankOperator::resetCurr>(custing,devicePRData);
 		// allVinG_TraverseVertices<StaticPageRankOperator::computeContribuitionPerVertex>(custing,devicePRData);

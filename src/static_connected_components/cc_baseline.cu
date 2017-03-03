@@ -33,13 +33,11 @@ void ccBaseline::Reset(){
 	copyArrayHostToDevice(&hostCCData,deviceCCData,1, sizeof(ccDataBaseline));
 }
 
-
 void ccBaseline::Release(){
 	freeDeviceArray(deviceCCData);
 	freeDeviceArray(hostCCData.currState);
 	freeDeviceArray(hostCCData.prevState);
 }
-
 
 void ccBaseline::Run(cuStinger& custing){
 	allVinG_TraverseVertices<StaticConnectedComponentsOperator::init>(custing,deviceCCData);

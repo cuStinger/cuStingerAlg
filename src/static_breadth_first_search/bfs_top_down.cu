@@ -29,6 +29,7 @@ void bfsTD::Init(cuStinger& custing){
 	deviceBfsData = (bfsData*)allocDeviceArray(1, sizeof(bfsData));
 	copyArrayHostToDevice(&hostBfsData,deviceBfsData,1, sizeof(bfsData));
 
+	cusLB = new cusLoadBalance(custing);
 	Reset();
 }
 
@@ -46,6 +47,7 @@ void bfsTD::setInputParameters(vertexId_t root){
 
 
 void bfsTD::Release(){
+	free(cusLB);
 	freeDeviceArray(deviceBfsData);
 	freeDeviceArray(hostBfsData.level);
 }
@@ -53,7 +55,7 @@ void bfsTD::Release(){
 
 void bfsTD::Run(cuStinger& custing){
 
-	cusLoadBalance cusLB(hostBfsData.nv);
+	// cusLoadBalance cusLB(hostBfsData.nv);
 
 	allVinG_TraverseVertices<bfsOperator::setLevelInfinity>(custing,deviceBfsData);
 	hostBfsData.queue.enqueueFromHost(hostBfsData.root);
@@ -64,7 +66,8 @@ void bfsTD::Run(cuStinger& custing){
 	length_t prevEnd=1;
 	while((hostBfsData.queue.getActiveQueueSize())>0){
 
-		allVinA_TraverseEdges_LB<bfsOperator::bfsExpandFrontier>(custing,deviceBfsData,cusLB,hostBfsData.queue);
+		// allVinA_TraverseEdges_LB<bfsOperator::bfsExpandFrontier>(custing,deviceBfsData,cusLB,hostBfsData.queue);
+		allVinA_TraverseEdges_LB<bfsOperator::bfsExpandFrontier>(custing,deviceBfsData,*cusLB,hostBfsData.queue);
 
 		SyncHostWithDevice();
 		hostBfsData.queue.setQueueCurr(prevEnd);

@@ -57,6 +57,8 @@ public:
 protected: 
 	pageRankData hostPRData, *devicePRData;
 	length_t reductionBytes;
+private: 
+	cusLoadBalance* cusLB;	
 };
 
 

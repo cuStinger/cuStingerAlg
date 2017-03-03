@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algs.cuh"
+#include "operators.cuh"
 
 namespace cuStingerAlgs {
 
@@ -101,6 +102,9 @@ public:
 
 protected: 
 	ccDataBaseline hostCCData, *deviceCCData;
+
+private: 
+	cusLoadBalance* cusLB;
 };
 
 

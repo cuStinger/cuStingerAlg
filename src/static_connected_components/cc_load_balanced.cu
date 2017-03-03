@@ -45,7 +45,7 @@ void ccConcurrentLB::Release(){
 }
 
 void ccConcurrentLB::Run(cuStinger& custing){
-	cusLoadBalance cusLB(custing);
+	// cusLoadBalance cusLB(custing);
 
 
 //	// cusLoadBalance cusLB(custing,true,true);
@@ -56,8 +56,8 @@ void ccConcurrentLB::Run(cuStinger& custing){
 		hostCCData.changeCurrIter=0;
 
 		SyncDeviceWithHost();
-		// allVinA_TraverseEdges_LB<StaticConnectedComponentsOperator::swapLocal>(custing,deviceCCData,*cusLB);
-		allVinA_TraverseEdges_LB<StaticConnectedComponentsOperator::swapLocal>(custing,deviceCCData,cusLB);
+		allVinA_TraverseEdges_LB<StaticConnectedComponentsOperator::swapLocal>(custing,deviceCCData,*cusLB);
+		// allVinA_TraverseEdges_LB<StaticConnectedComponentsOperator::swapLocal>(custing,deviceCCData,cusLB);
 		allVinG_TraverseVertices<StaticConnectedComponentsOperator::shortcut>(custing,deviceCCData);
 		allVinG_TraverseVertices<StaticConnectedComponentsOperator::shortcut>(custing,deviceCCData);
 		SyncHostWithDevice();
