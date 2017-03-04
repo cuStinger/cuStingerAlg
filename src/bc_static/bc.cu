@@ -10,7 +10,9 @@
 
 #include "macros.cuh"
 
+#include "algs.cuh"
 #include "bc_static/bc.cuh"
+// #include "bc_static/bc_tree.cuh"
 
 
 using namespace std;
@@ -20,23 +22,16 @@ namespace cuStingerAlgs {
 
 void StaticBC::Init(cuStinger& custing)
 {
-	hostBcStaticData.nv = custing.nv;
-	hostBcStaticData.queue.Init(custing.nv);
+
+	hostBcTree = createHostBcTree(custing.nv);
+	hostBcTree->nv = custing.nv;
+	hostBcTree->queue.Init(custing.nv);
+
+	// this sets hostBcTree's pointers for d, sigma, delta and copies its contents
+	// to deviceBcTree on the device
+	deviceBcTree = createDeviceBcTree(custing.nv, hostBcTree);
 
 	host_deltas = new float[custing.nv];
-
-	// TODO: Maybe replace with depth array *d?
-	hostBcStaticData.level = (vertexId_t*) allocDeviceArray(hostBcStaticData.nv, sizeof(vertexId_t));
-
-	hostBcStaticData.d = (int*) allocDeviceArray(hostBcStaticData.nv, sizeof(int));
-	hostBcStaticData.sigma = (unsigned long long*) allocDeviceArray(hostBcStaticData.nv, sizeof(long));
-	hostBcStaticData.delta = (float*) allocDeviceArray(hostBcStaticData.nv, sizeof(float));
-
-	// on the host only
-	hostBcStaticData.offsets = new int[hostBcStaticData.nv];
-
-	deviceBcStaticData = (bcStaticData*) allocDeviceArray(1, sizeof(bcStaticData));
-	copyArrayHostToDevice(&hostBcStaticData, deviceBcStaticData, 1, sizeof(bcStaticData));
 
 	Reset();
 }
@@ -44,13 +39,13 @@ void StaticBC::Init(cuStinger& custing)
 
 void StaticBC::Reset()
 {
-	hostBcStaticData.queue.resetQueue();
-	hostBcStaticData.currLevel = 0;
+	hostBcTree->queue.resetQueue();
+	hostBcTree->currLevel = 0;
 
 	// initialize all offsets to zero
-	for (int i = 0; i < hostBcStaticData.nv; i++)
+	for (int i = 0; i < hostBcTree->nv; i++)
 	{
-		hostBcStaticData.offsets[i] = 0;
+		hostBcTree->offsets[i] = 0;
 	}
 
 	SyncDeviceWithHost();
@@ -59,20 +54,15 @@ void StaticBC::Reset()
 // Must pass in a root node vertex id, and a pointer to bc values (of length custing.nv)
 void StaticBC::setInputParameters(vertexId_t root, float *bc_array)
 {
-	hostBcStaticData.root = root;
+	hostBcTree->root = root;
 	bc = bc_array;
 }
 
 void StaticBC::Release()
 {
-	freeDeviceArray(deviceBcStaticData);
-	freeDeviceArray(hostBcStaticData.level);
+	destroyDeviceBcTree(deviceBcTree);
+	destroyHostBcTree(hostBcTree);
 
-	freeDeviceArray(hostBcStaticData.d);
-	freeDeviceArray(hostBcStaticData.sigma);
-	freeDeviceArray(hostBcStaticData.delta);
-
-	delete[] hostBcStaticData.offsets;
 	delete[] host_deltas;
 }
 
@@ -86,44 +76,46 @@ void StaticBC::Run(cuStinger& custing)
 void StaticBC::RunBfsTraversal(cuStinger& custing)
 {
 
-	cusLoadBalance cusLB(hostBcStaticData.nv);
+	cusLoadBalance cusLB(hostBcTree->nv);
 
 	// Clear out array values first
-	allVinG_TraverseVertices<bcOperator::clearArrays>(custing,deviceBcStaticData);
+	allVinG_TraverseVertices<bcOperator::clearArrays>(custing,deviceBcTree);
 
-	allVinG_TraverseVertices<bcOperator::setLevelInfinity>(custing,deviceBcStaticData);
-	hostBcStaticData.queue.enqueueFromHost(hostBcStaticData.root);
+	allVinG_TraverseVertices<bcOperator::setLevelInfinity>(custing,deviceBcTree);
+	hostBcTree->queue.enqueueFromHost(hostBcTree->root);
 
 	SyncDeviceWithHost();
-	// set level[root] <- 0
-	copyArrayHostToDevice(&hostBcStaticData.currLevel,
-		hostBcStaticData.level+hostBcStaticData.root, 1, sizeof(length_t));
+
+	// set d[root] <- 0
+	int zero = 0;
+	copyArrayHostToDevice(&zero, hostBcTree->d + hostBcTree->root,
+		1, sizeof(length_t));
 
 	// set sigma[root] <- 1
 	int one = 1;
-	copyArrayHostToDevice(&one,
-		hostBcStaticData.sigma+hostBcStaticData.root, 1, sizeof(length_t));
+	copyArrayHostToDevice(&one, hostBcTree->sigma + hostBcTree->root,
+		1, sizeof(length_t));
 
 	length_t prevEnd = 1;
-	hostBcStaticData.offsets[0] = 1;
-	while( hostBcStaticData.queue.getActiveQueueSize() > 0)
+	hostBcTree->offsets[0] = 1;
+	
+	while( hostBcTree->queue.getActiveQueueSize() > 0)
 	{
 
 		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing, 
-			deviceBcStaticData,cusLB,hostBcStaticData.queue);
+			deviceBcTree,cusLB,hostBcTree->queue);
 
 		SyncHostWithDevice();  // update host
 
 		// Update cumulative offsets from start of queue
-
-		hostBcStaticData.queue.setQueueCurr(prevEnd);
+		hostBcTree->queue.setQueueCurr(prevEnd);
 		
 		vertexId_t level = getLevel();
-		hostBcStaticData.offsets[level + 1] = hostBcStaticData.queue.getActiveQueueSize() + hostBcStaticData.offsets[level];
+		hostBcTree->offsets[level + 1] = hostBcTree->queue.getActiveQueueSize() + hostBcTree->offsets[level];
 		
-		prevEnd = hostBcStaticData.queue.getQueueEnd();
+		prevEnd = hostBcTree->queue.getQueueEnd();
 
-		hostBcStaticData.currLevel++;
+		hostBcTree->currLevel++;
 		SyncDeviceWithHost();  // update device
 	}
 }
@@ -132,41 +124,41 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 void StaticBC::DependencyAccumulation(cuStinger& custing)
 {
 	// for load balancing
-	cusLoadBalance cusLB(hostBcStaticData.nv);
+	cusLoadBalance cusLB(hostBcTree->nv);
 
 	// Iterate backwards through depths, starting from 2nd deepest frontier
 	
 	// Begin with the 2nd deepest frontier as the active queue
-	hostBcStaticData.currLevel -= 2;
+	hostBcTree->currLevel -= 2;
 	SyncDeviceWithHost();
 
 	while (getLevel() >= 0)
 	{
-		length_t start = hostBcStaticData.offsets[getLevel()];
-		length_t end = hostBcStaticData.offsets[getLevel() + 1];
+		length_t start = hostBcTree->offsets[getLevel()];
+		length_t end = hostBcTree->offsets[getLevel() + 1];
 		
 		// // set queue start and end so the queue holds all nodes in one frontier
-		hostBcStaticData.queue.setQueueCurr(start);
-		hostBcStaticData.queue.setQueueEnd(end);
-		hostBcStaticData.queue.SyncDeviceWithHost();
+		hostBcTree->queue.setQueueCurr(start);
+		hostBcTree->queue.setQueueEnd(end);
+		hostBcTree->queue.SyncDeviceWithHost();
 		SyncDeviceWithHost();
 
 		// Now, run the macro for all outbound edges over this queue
-		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcStaticData, cusLB, hostBcStaticData.queue);
+		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcTree, cusLB, hostBcTree->queue);
 		
 		SyncHostWithDevice();
 
-		hostBcStaticData.currLevel -= 1;
+		hostBcTree->currLevel -= 1;
 		SyncDeviceWithHost();
 	}
 
 	// Now, copy over delta values to host
-	copyArrayDeviceToHost(hostBcStaticData.delta, host_deltas, hostBcStaticData.nv, sizeof(float));
+	copyArrayDeviceToHost(hostBcTree->delta, host_deltas, hostBcTree->nv, sizeof(float));
 
 	// // Finally, update the bc values
-	for (vertexId_t w = 0; w < hostBcStaticData.nv; w++)
+	for (vertexId_t w = 0; w < hostBcTree->nv; w++)
 	{
-		if (w != hostBcStaticData.root)
+		if (w != hostBcTree->root)
 		{
 			bc[w] += host_deltas[w];
 		}

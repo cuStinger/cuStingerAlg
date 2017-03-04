@@ -14,6 +14,7 @@
 
 #include "algs.cuh"
 #include "bc_static/bc.cuh"
+#include "bc_static/bc_tree.cuh"
 
 using namespace cuStingerAlgs;
 using namespace std;
@@ -26,8 +27,6 @@ using namespace std;
                 cudaGetErrorString(_e), _e);        \
         return -1;                                  \
     } while (0)
-
-typedef void (*cus_kernel_call)(cuStinger& custing, void* func_meta_data);
 
 typedef struct
 {
@@ -206,7 +205,8 @@ void rmat_edge (int64_t * iout, int64_t * jout, int SCALE, double A, double B, d
 }
 
 
-void generateEdgeUpdatesRMAT(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst,double A, double B, double C, double D){
+void generateEdgeUpdatesRMAT(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst,double A, double B, double C, double D)
+{
 	int64_t src,dst;
 	int scale = (int)log2(double(nv));
 	for(int32_t e=0; e<numEdges; e++){
@@ -217,7 +217,15 @@ void generateEdgeUpdatesRMAT(length_t nv, length_t numEdges, vertexId_t* edgeSrc
 }
 
 
-cuStinger *setupGraph(const int argc, char **argv)
+// cuStinger *setupGraph(const int argc, char **argv)
+// {
+	
+
+// 	return &custing;
+// }
+
+
+int main(const int argc, char **argv)
 {
 	parse_arguments(argc, argv);
 
@@ -271,14 +279,9 @@ cuStinger *setupGraph(const int argc, char **argv)
 
 	custing.initializeCuStinger(cuInit);
 
-	return &custing;
-}
+	// cuStinger *custingPtr = setupGraph(argc, argv);
+	// cuStinger custing = *custingPtr;
 
-
-int main(const int argc, char **argv)
-{
-
-	cuStinger custing = *setupGraph(argc, argv);
 	length_t nv = custing.nv;
 
 	// Must free this memory afterwards
