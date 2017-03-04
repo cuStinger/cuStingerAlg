@@ -43,13 +43,6 @@ typedef struct
 
 program_options options;
 
-
-bool isDimacs = false;
-bool isSNAP = false;
-bool isRmat = false;
-length_t nv, ne, *off;
-vertexId_t *adj;
-
 void printUsageInfo(char **argv)
 {
 	cout << "Usage: " << argv[0];
@@ -216,15 +209,6 @@ void generateEdgeUpdatesRMAT(length_t nv, length_t numEdges, vertexId_t* edgeSrc
 	}
 }
 
-
-// cuStinger *setupGraph(const int argc, char **argv)
-// {
-	
-
-// 	return &custing;
-// }
-
-
 int main(const int argc, char **argv)
 {
 	parse_arguments(argc, argv);
@@ -233,6 +217,12 @@ int main(const int argc, char **argv)
     cudaSetDevice(device);
 	cudaDeviceProp prop;
 	cudaGetDeviceProperties(&prop, device);
+
+	bool isDimacs = false;
+	bool isSNAP = false;
+	bool isRmat = false;
+	length_t nv, ne, *off;
+	vertexId_t *adj;
 
 	string filename(options.infile);
 
@@ -278,11 +268,6 @@ int main(const int argc, char **argv)
 	cuInit.csrEW = NULL;
 
 	custing.initializeCuStinger(cuInit);
-
-	// cuStinger *custingPtr = setupGraph(argc, argv);
-	// cuStinger custing = *custingPtr;
-
-	length_t nv = custing.nv;
 
 	// Must free this memory afterwards
 	float *bc = new float[nv];

@@ -12,7 +12,7 @@
 
 #include "algs.cuh"
 #include "bc_static/bc.cuh"
-// #include "bc_static/bc_tree.cuh"
+#include "bc_static/bc_tree.cuh"
 
 
 using namespace std;
@@ -22,7 +22,6 @@ namespace cuStingerAlgs {
 
 void StaticBC::Init(cuStinger& custing)
 {
-
 	hostBcTree = createHostBcTree(custing.nv);
 	hostBcTree->nv = custing.nv;
 	hostBcTree->queue.Init(custing.nv);
@@ -30,9 +29,8 @@ void StaticBC::Init(cuStinger& custing)
 	// this sets hostBcTree's pointers for d, sigma, delta and copies its contents
 	// to deviceBcTree on the device
 	deviceBcTree = createDeviceBcTree(custing.nv, hostBcTree);
-
+	
 	host_deltas = new float[custing.nv];
-
 	Reset();
 }
 
@@ -105,7 +103,7 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing, 
 			deviceBcTree,cusLB,hostBcTree->queue);
 
-		SyncHostWithDevice();  // update host
+		SyncHostWithDevice();
 
 		// Update cumulative offsets from start of queue
 		hostBcTree->queue.setQueueCurr(prevEnd);
@@ -116,7 +114,7 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 		prevEnd = hostBcTree->queue.getQueueEnd();
 
 		hostBcTree->currLevel++;
-		SyncDeviceWithHost();  // update device
+		SyncDeviceWithHost();
 	}
 }
 
@@ -127,7 +125,6 @@ void StaticBC::DependencyAccumulation(cuStinger& custing)
 	cusLoadBalance cusLB(hostBcTree->nv);
 
 	// Iterate backwards through depths, starting from 2nd deepest frontier
-	
 	// Begin with the 2nd deepest frontier as the active queue
 	hostBcTree->currLevel -= 2;
 	SyncDeviceWithHost();

@@ -18,7 +18,7 @@ typedef struct {
 
     // offsets storees ending position of each frontier in the queue.
     // Used during dependency accumulation. Host only
-    vertexId_t* offsets;
+    float* offsets;
 } bcTree;
 
 
