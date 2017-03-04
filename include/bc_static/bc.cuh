@@ -17,11 +17,11 @@ public:
 
 	void SyncHostWithDevice()
 	{
-		copyArrayDeviceToHost(deviceBcTree, &hostBcTree, 1, sizeof(bcTree));
+		copyArrayDeviceToHost(deviceBcTree, hostBcTree, 1, sizeof(bcTree));
 	}
 	void SyncDeviceWithHost()
 	{
-		copyArrayHostToDevice(&hostBcTree, deviceBcTree, 1, sizeof(bcTree));
+		copyArrayHostToDevice(hostBcTree, deviceBcTree, 1, sizeof(bcTree));
 	}
 
 	void RunBfsTraversal(cuStinger& custing);

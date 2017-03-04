@@ -81,6 +81,7 @@ cuda_add_executable(cuAlgStCCT
 cuda_add_executable(bc_static
           src/bc_static/bc_main.cu
           src/bc_static/bc.cu
+          src/bc_static/bc_tree.cu
       )
 
 cuda_add_executable(cus-alg-tester 

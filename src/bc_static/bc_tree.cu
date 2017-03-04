@@ -1,3 +1,7 @@
+#include "utils.hpp"
+#include "update.hpp"
+#include "cuStinger.hpp"
+
 #include "algs.cuh"
 #include "bc_static/bc_tree.cuh"
 
@@ -18,14 +22,14 @@ bcTree* createDeviceBcTree(length_t nv, bcTree *tree_h)
 	size += 2 * nv * sizeof(vertexId_t);  // d and sigma
 	size += nv * sizeof(float);  // delta
 
-	void *starting_point = allocDeviceArray(1, size);
+	char *starting_point = (char *) allocDeviceArray(1, size);
 	bcTree *tree_d = (bcTree*) starting_point;
 
 	// pointer arithmetic for d, sigma, delta pointers
 	// these are actual memory locations on the device for the arrays
-	void *d = starting_point + sizeof(bcTree);  // start where tree_d ends
-	void *sigma = d + nv * sizeof(vertexId_t);  // start where d ends
-	void *delta = sigma + nv * sizeof(vertexId_t);  // start where sigma ends
+	char *d = starting_point + sizeof(bcTree);  // start where tree_d ends
+	char *sigma = d + nv * sizeof(vertexId_t);  // start where d ends
+	char *delta = sigma + nv * sizeof(vertexId_t);  // start where sigma ends
 
 	tree_h->d = (vertexId_t *) d;
 	tree_h->sigma = (vertexId_t *) sigma;
