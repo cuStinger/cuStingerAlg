@@ -96,5 +96,3 @@ TARGET_LINK_LIBRARIES(cuAlgCCT custingerAlgs custinger  /usr/local/cuda/lib64/li
 TARGET_LINK_LIBRARIES(cuAlgStCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 
 TARGET_LINK_LIBRARIES(cus-alg-tester custingerAlgs custinger /usr/local/cuda/lib64/libcudart.so)
-
-# TARGET_LINK_LIBRARIES(forest-tester custingerAlgs custinger /usr/local/cuda/lib64/libcudart.so)
