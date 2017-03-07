@@ -83,6 +83,7 @@ cuda_add_executable(static_bc
           src/static_bc/bc.cu
           src/static_bc/bc_tree.cu
           src/load_balance.cu
+          )
 
 cuda_add_executable(cus-alg-tester 
           tests/alg-tester.cu
