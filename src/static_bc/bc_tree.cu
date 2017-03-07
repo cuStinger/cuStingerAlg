@@ -3,7 +3,7 @@
 #include "cuStinger.hpp"
 
 #include "algs.cuh"
-#include "bc_static/bc_tree.cuh"
+#include "static_bc/bc_tree.cuh"
 
 namespace cuStingerAlgs {
 
