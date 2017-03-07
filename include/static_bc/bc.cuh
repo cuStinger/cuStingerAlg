@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algs.cuh"
+#include "load_balance.cuh"
 #include "static_bc/bc_tree.cuh"
 
 // Betweenness Centrality
@@ -52,6 +53,7 @@ private:
 	float *bc;  // the actual bc values array on the host
 	// a float array which will contain a copy of the device delta array during dependency accumulation
 	float *host_deltas;
+	cusLoadBalance* cusLB;
 };
 
 

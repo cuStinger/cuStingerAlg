@@ -8,7 +8,7 @@
 #include "update.hpp"
 #include "cuStinger.hpp"
 
-#include "macros.cuh"
+#include "operators.cuh"
 
 #include "algs.cuh"
 #include "static_bc/bc.cuh"
@@ -31,6 +31,8 @@ void StaticBC::Init(cuStinger& custing)
 	deviceBcTree = createDeviceBcTree(custing.nv, hostBcTree);
 	
 	host_deltas = new float[custing.nv];
+
+	cusLB = new cusLoadBalance(custing.nv);
 	Reset();
 }
 
@@ -58,6 +60,7 @@ void StaticBC::setInputParameters(vertexId_t root, float *bc_array)
 
 void StaticBC::Release()
 {
+	delete cusLB;
 	destroyDeviceBcTree(deviceBcTree);
 	destroyHostBcTree(hostBcTree);
 
@@ -73,9 +76,6 @@ void StaticBC::Run(cuStinger& custing)
 
 void StaticBC::RunBfsTraversal(cuStinger& custing)
 {
-
-	cusLoadBalance cusLB(hostBcTree->nv);
-
 	// Clear out array values first
 	allVinG_TraverseVertices<bcOperator::clearArrays>(custing,deviceBcTree);
 
@@ -101,7 +101,7 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 	{
 
 		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing, 
-			deviceBcTree,cusLB,hostBcTree->queue);
+			deviceBcTree,*cusLB,hostBcTree->queue);
 
 		SyncHostWithDevice();
 
@@ -121,9 +121,6 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 
 void StaticBC::DependencyAccumulation(cuStinger& custing)
 {
-	// for load balancing
-	cusLoadBalance cusLB(hostBcTree->nv);
-
 	// Iterate backwards through depths, starting from 2nd deepest frontier
 	// Begin with the 2nd deepest frontier as the active queue
 	hostBcTree->currLevel -= 2;
@@ -141,7 +138,7 @@ void StaticBC::DependencyAccumulation(cuStinger& custing)
 		SyncDeviceWithHost();
 
 		// Now, run the macro for all outbound edges over this queue
-		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcTree, cusLB, hostBcTree->queue);
+		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcTree, *cusLB, hostBcTree->queue);
 		
 		SyncHostWithDevice();
 
