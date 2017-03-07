@@ -1,7 +1,7 @@
 #pragma once
 
 #include "algs.cuh"
-#include "bc_static/bc_tree.cuh"
+#include "static_bc/bc_tree.cuh"
 
 // Betweenness Centrality
 

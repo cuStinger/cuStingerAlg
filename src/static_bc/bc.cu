@@ -11,8 +11,8 @@
 #include "macros.cuh"
 
 #include "algs.cuh"
-#include "bc_static/bc.cuh"
-#include "bc_static/bc_tree.cuh"
+#include "static_bc/bc.cuh"
+#include "static_bc/bc_tree.cuh"
 
 
 using namespace std;

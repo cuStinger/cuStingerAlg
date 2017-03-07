@@ -13,8 +13,7 @@
 #include <getopt.h>
 
 #include "algs.cuh"
-#include "bc_static/bc.cuh"
-#include "bc_static/bc_tree.cuh"
+#include "static_bc/bc.cuh"
 
 using namespace cuStingerAlgs;
 using namespace std;
