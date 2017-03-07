@@ -53,7 +53,10 @@ private:
 	float *bc;  // the actual bc values array on the host
 	// a float array which will contain a copy of the device delta array during dependency accumulation
 	float *host_deltas;
+<<<<<<< HEAD
 	cusLoadBalance* cusLB;
+=======
+>>>>>>> f8855442c02a72d2d5f9b74d75c9f996286065e7
 };
 
 

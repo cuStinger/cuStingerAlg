@@ -9,7 +9,6 @@
 #include "cuStinger.hpp"
 
 #include "operators.cuh"
-
 #include "algs.cuh"
 #include "static_bc/bc.cuh"
 #include "static_bc/bc_tree.cuh"
@@ -31,8 +30,11 @@ void StaticBC::Init(cuStinger& custing)
 	deviceBcTree = createDeviceBcTree(custing.nv, hostBcTree);
 	
 	host_deltas = new float[custing.nv];
+<<<<<<< HEAD
 
 	cusLB = new cusLoadBalance(custing.nv);
+=======
+>>>>>>> f8855442c02a72d2d5f9b74d75c9f996286065e7
 	Reset();
 }
 
@@ -60,7 +62,10 @@ void StaticBC::setInputParameters(vertexId_t root, float *bc_array)
 
 void StaticBC::Release()
 {
+<<<<<<< HEAD
 	delete cusLB;
+=======
+>>>>>>> f8855442c02a72d2d5f9b74d75c9f996286065e7
 	destroyDeviceBcTree(deviceBcTree);
 	destroyHostBcTree(hostBcTree);
 
@@ -76,6 +81,12 @@ void StaticBC::Run(cuStinger& custing)
 
 void StaticBC::RunBfsTraversal(cuStinger& custing)
 {
+<<<<<<< HEAD
+=======
+
+	cusLoadBalance cusLB(hostBcTree->nv);
+
+>>>>>>> f8855442c02a72d2d5f9b74d75c9f996286065e7
 	// Clear out array values first
 	allVinG_TraverseVertices<bcOperator::clearArrays>(custing,deviceBcTree);
 
@@ -101,7 +112,11 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 	{
 
 		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing, 
+<<<<<<< HEAD
 			deviceBcTree,*cusLB,hostBcTree->queue);
+=======
+			deviceBcTree,cusLB,hostBcTree->queue);
+>>>>>>> f8855442c02a72d2d5f9b74d75c9f996286065e7
 
 		SyncHostWithDevice();
 
@@ -121,6 +136,12 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 
 void StaticBC::DependencyAccumulation(cuStinger& custing)
 {
+<<<<<<< HEAD
+=======
+	// for load balancing
+	cusLoadBalance cusLB(hostBcTree->nv);
+
+>>>>>>> f8855442c02a72d2d5f9b74d75c9f996286065e7
 	// Iterate backwards through depths, starting from 2nd deepest frontier
 	// Begin with the 2nd deepest frontier as the active queue
 	hostBcTree->currLevel -= 2;
@@ -138,7 +159,11 @@ void StaticBC::DependencyAccumulation(cuStinger& custing)
 		SyncDeviceWithHost();
 
 		// Now, run the macro for all outbound edges over this queue
+<<<<<<< HEAD
 		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcTree, *cusLB, hostBcTree->queue);
+=======
+		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcTree, cusLB, hostBcTree->queue);
+>>>>>>> f8855442c02a72d2d5f9b74d75c9f996286065e7
 		
 		SyncHostWithDevice();
 
