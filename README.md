@@ -1,2 +1,0 @@
-# gpu-bc
-# testing
