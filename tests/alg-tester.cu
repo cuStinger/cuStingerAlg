@@ -13,8 +13,8 @@
 #include "algs.cuh"
 
 #include "static_breadth_first_search/bfs_top_down.cuh"
-#include "static_breadth_first_search/bfs_bottom_up.cuh"
-#include "static_breadth_first_search/bfs_hybrid.cuh"
+// #include "static_breadth_first_search/bfs_bottom_up.cuh"
+// #include "static_breadth_first_search/bfs_hybrid.cuh"
 #include "static_connected_components/cc.cuh"
 #include "static_page_rank/pr.cuh"
 
@@ -158,33 +158,33 @@ int main(const int argc, char *argv[]){
 
 	bfs.Release();
 
-	bfsBU bfsbu;
-	bfsbu.Init(custing);
-	bfsbu.Reset();
-	bfsbu.setInputParameters(maxV);
-	start_clock(ce_start, ce_stop);
+	// bfsBU bfsbu;
+	// bfsbu.Init(custing);
+	// bfsbu.Reset();
+	// bfsbu.setInputParameters(maxV);
+	// start_clock(ce_start, ce_stop);
 	// bfsbu.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
+	// totalTime = end_clock(ce_start, ce_stop);
 
 	// cout << "The number of levels          : " << bfsbu.getLevels() << endl;
 	// cout << "The number of elements found  : " << bfsbu.getElementsFound(custing) << endl;
 	// cout << "Total time for BFS - Bottom-up: " << totalTime << endl; 
 
-	bfsbu.Release();
+	// bfsbu.Release();
 
-	bfsHybrid bfsHy;
-	bfsHy.Init(custing);
-	bfsHy.Reset();
-	bfsHy.setInputParameters(maxV);
-	start_clock(ce_start, ce_stop);
+	// bfsHybrid bfsHy;
+	// bfsHy.Init(custing);
+	// bfsHy.Reset();
+	// bfsHy.setInputParameters(maxV);
+	// start_clock(ce_start, ce_stop);
 	// bfsHy.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
+	// totalTime = end_clock(ce_start, ce_stop);
 
 	// cout << "The number of levels          : " << bfsHy.getLevels() << endl;
 	// cout << "The number of elements found  : " << bfsHy.getElementsFound(custing) << endl;
 	// cout << "Total time for BFS - Hybrid   : " << totalTime << endl; 
 
-	bfsHy.Release();
+	// bfsHy.Release();
 
 
 
