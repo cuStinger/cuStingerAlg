@@ -70,7 +70,7 @@ void StaticPageRank::Release(){
 }
 
 void StaticPageRank::Run(cuStinger& custing){
-	cout << "The number of non zeros is : " << cusLB.currArrayLen << endl;
+	cout << "The number of non zeros is : " << cusLB->currArrayLen << endl;
 
 	allVinG_TraverseVertices<StaticPageRankOperator::init>(custing,devicePRData);
 	hostPRData.iteration = 0;
