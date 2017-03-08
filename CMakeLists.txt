@@ -59,6 +59,8 @@ cuda_add_library(custingerAlgs
           src/streaming_triangle_counting/cct_upd.cu
           src/static_triangle_counting/cct.cu
           src/static_breadth_first_search/bfs_top_down.cu
+          src/static_breadth_first_search/bfs_bottom_up.cu
+          src/static_breadth_first_search/bfs_hybrid.cu
           src/static_connected_components/cc_baseline.cu
           src/static_connected_components/cc_concurrent.cu
           src/static_connected_components/cc_load_balanced.cu
