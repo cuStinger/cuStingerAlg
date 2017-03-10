@@ -31,7 +31,6 @@ void StaticBC::Init(cuStinger& custing)
 		approx = true;
 	}
 
-	printf("Init() numRoots: %d\n", numRoots);
 
 	deviceBcTree = createDeviceBcTree(custing.nv, hostBcTree);
 	host_deltas = new float[custing.nv];
@@ -74,13 +73,9 @@ void StaticBC::Run(cuStinger& custing)
 		} else {
 			hostBcTree->root = k;
 		}
-		printf("About to sync -- root: %d\n", hostBcTree->root);
 		SyncDeviceWithHost();
-		printf("SyncDeviceWithHost()\n");
 		RunBfsTraversal(custing);
-		printf("finish traversal()\n");
 		DependencyAccumulation(custing);
-		printf("finish dep acc()\n");
 
 		Reset();  // must do this
 	}
@@ -95,7 +90,6 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 
 	SyncDeviceWithHost();
 
-	printf("After enqueueFromHost\n");
 
 	// set d[root] <- 0
 	int zero = 0;
@@ -107,7 +101,6 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 	copyArrayHostToDevice(&one, hostBcTree->sigma + hostBcTree->root,
 		1, sizeof(length_t));
 
-	printf("After copy array to device\n");
 
 	length_t prevEnd = 1;
 	hostBcTree->offsets[0] = 1;

@@ -83,15 +83,11 @@ public:
 
 		vertexId_t prev = atomicCAS(bcd->d + w, INT32_MAX, nextLevel);
 		if (prev == INT32_MAX) {
-			printf("About to enqueue\n");
 			bcd->queue.enqueue(w);
 		}
 		if (bcd->d[w] == nextLevel) {
 			atomicAdd(bcd->sigma + w, bcd->sigma[v]);
 		}
-
-		printf("Finish expand frontier\n");
-
 	}
 
 	// Use macro to clear values in arrays to 0
