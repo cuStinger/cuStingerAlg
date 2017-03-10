@@ -12,7 +12,7 @@
 #include <getopt.h>
 
 #include "algs.cuh"
-#include "static_bc/bc.cuh"
+#include "static_betwenness_centrality/bc.cuh"
 
 using namespace cuStingerAlgs;
 using namespace std;

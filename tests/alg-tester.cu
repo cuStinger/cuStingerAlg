@@ -17,7 +17,7 @@
 // #include "static_breadth_first_search/bfs_hybrid.cuh"
 #include "static_connected_components/cc.cuh"
 #include "static_page_rank/pr.cuh"
-#include "static_bc/bc.cuh"
+#include "static_betwenness_centrality/bc.cuh"
 
 
 using namespace cuStingerAlgs;
