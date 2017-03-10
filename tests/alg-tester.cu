@@ -17,6 +17,7 @@
 // #include "static_breadth_first_search/bfs_hybrid.cuh"
 #include "static_connected_components/cc.cuh"
 #include "static_page_rank/pr.cuh"
+#include "static_betwenness_centrality/bc.cuh"
 
 
 using namespace cuStingerAlgs;
@@ -218,6 +219,26 @@ int main(const int argc, char *argv[]){
 	// pr2.printRankings(custing);
 
 	pr2.Release();
+
+
+	float *bc = new float[nv];
+	for (int k = 0; k < nv; k++)
+	{
+		bc[k] = 0;
+	}
+	StaticBC sbc(bc);
+	sbc.Init(custing);
+	sbc.Reset();
+
+	start_clock(ce_start, ce_stop);
+	sbc.Run(custing);
+
+	totalTime = end_clock(ce_start, ce_stop);
+	cout << "Total time for Static Betweenness Centrality: " << totalTime << endl;
+
+	sbc.Reset();
+	sbc.Release();
+	delete[] bc;
 
 
 

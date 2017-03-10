@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -78,7 +77,10 @@ public:
 	T* getQueue(){return queue;}
 	__host__ __device__	length_t getQueueEnd(){return queueEnd;}
 	__host__ __device__ length_t getQueueCurr(){return queueCurr;}
-	void     setQueueCurr(length_t curr){queueCurr=curr;}
+
+	void setQueueCurr(length_t curr) { queueCurr = curr; }
+
+	void setQueueEnd(length_t end) { queueEnd = end; }
 
 	void resetQueue(){queueCurr=queueEnd=0;}
 	length_t getActiveQueueSize(){return queueEnd-queueCurr;}
