@@ -5,7 +5,6 @@
 
 #include <math.h>
 
-
 #include "utils.hpp"
 #include "update.hpp"
 #include "cuStinger.hpp"
@@ -275,20 +274,14 @@ int main(const int argc, char **argv)
 		bc[k] = 0;
 	}
 
-	vertexId_t root = 0;
-	int rootsVisited = 0;
-
 	StaticBC sbc(options.numRoots, bc);
 	sbc.Init(custing);
-	cout << "INIT done" << endl;
 	sbc.Reset();
-	cout << "Reset done" << endl;
 
 	cudaEvent_t ce_start,ce_stop;
 	start_clock(ce_start, ce_stop);
 
 	sbc.Run(custing);
-	cout << "Run done" << endl;
 
 	float totalTime = end_clock(ce_start, ce_stop);
 	cout << "Total time for Betweenness Centrality Computation: " << totalTime << endl;
