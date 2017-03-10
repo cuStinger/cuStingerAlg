@@ -11,6 +11,7 @@ bcTree* createHostBcTree(length_t nv)
 {
 	bcTree *tree_h = new bcTree;
 	tree_h->offsets = new float[nv];
+	tree_h->nv = nv;
 	return tree_h;
 }
 

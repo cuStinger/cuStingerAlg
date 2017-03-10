@@ -87,7 +87,7 @@ cuda_add_executable(static_bc
 
 cuda_add_executable(cus-alg-tester 
           tests/alg-tester.cu
-           )
+          )
 
 
 TARGET_LINK_LIBRARIES(static_bc custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)

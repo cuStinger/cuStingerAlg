@@ -65,8 +65,9 @@ public:
 	}
 
 	~cusLoadBalance(){
-		if(internalAlloc)
+		if(internalAlloc) {
 			freeDeviceArray(currArray);
+		}
 		
 		freeDeviceArray(devPartitionsPoints);
 		freeDeviceArray(devPrefixArray);

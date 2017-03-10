@@ -18,17 +18,22 @@ using namespace std;
 
 namespace cuStingerAlgs {
 
-
 void StaticBC::Init(cuStinger& custing)
 {
 	hostBcTree = createHostBcTree(custing.nv);
 	hostBcTree->nv = custing.nv;
 	hostBcTree->queue.Init(custing.nv);
 
-	// this sets hostBcTree's pointers for d, sigma, delta and copies its contents
-	// to deviceBcTree on the device
+	if (numRoots == -1 || numRoots == hostBcTree->nv) {
+		approx = false;
+		numRoots = hostBcTree->nv;
+	} else {
+		approx = true;
+	}
+
+	printf("Init() numRoots: %d\n", numRoots);
+
 	deviceBcTree = createDeviceBcTree(custing.nv, hostBcTree);
-	
 	host_deltas = new float[custing.nv];
 	cusLB = new cusLoadBalance(custing.nv);
 	Reset();
@@ -49,38 +54,48 @@ void StaticBC::Reset()
 	SyncDeviceWithHost();
 }
 
-// Must pass in a root node vertex id, and a pointer to bc values (of length custing.nv)
-void StaticBC::setInputParameters(vertexId_t root, float *bc_array)
-{
-	hostBcTree->root = root;
-	bc = bc_array;
-}
 
 void StaticBC::Release()
 {
-	delete cusLB;
 	destroyDeviceBcTree(deviceBcTree);
 	destroyHostBcTree(hostBcTree);
 
+	free(cusLB);
 	delete[] host_deltas;
 }
 
 
 void StaticBC::Run(cuStinger& custing)
 {
-	RunBfsTraversal(custing);
-	DependencyAccumulation(custing);
+	for (length_t k = 0; k < numRoots; k++)
+	{
+		if (approx) {
+			hostBcTree->root = rand() % custing.nv;
+		} else {
+			hostBcTree->root = k;
+		}
+		printf("About to sync -- root: %d\n", hostBcTree->root);
+		SyncDeviceWithHost();
+		printf("SyncDeviceWithHost()\n");
+		RunBfsTraversal(custing);
+		printf("finish traversal()\n");
+		DependencyAccumulation(custing);
+		printf("finish dep acc()\n");
+
+		Reset();  // must do this
+	}
 }
+
 
 void StaticBC::RunBfsTraversal(cuStinger& custing)
 {
 	// Clear out array values first
-	allVinG_TraverseVertices<bcOperator::clearArrays>(custing,deviceBcTree);
-
-	allVinG_TraverseVertices<bcOperator::setLevelInfinity>(custing,deviceBcTree);
+	allVinG_TraverseVertices<bcOperator::setupArrays>(custing, deviceBcTree);
 	hostBcTree->queue.enqueueFromHost(hostBcTree->root);
 
 	SyncDeviceWithHost();
+
+	printf("After enqueueFromHost\n");
 
 	// set d[root] <- 0
 	int zero = 0;
@@ -92,6 +107,8 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 	copyArrayHostToDevice(&one, hostBcTree->sigma + hostBcTree->root,
 		1, sizeof(length_t));
 
+	printf("After copy array to device\n");
+
 	length_t prevEnd = 1;
 	hostBcTree->offsets[0] = 1;
 	
@@ -99,7 +116,7 @@ void StaticBC::RunBfsTraversal(cuStinger& custing)
 	{
 
 		allVinA_TraverseEdges_LB<bcOperator::bcExpandFrontier>(custing, 
-			deviceBcTree,*cusLB,hostBcTree->queue);
+			deviceBcTree, *cusLB, hostBcTree->queue);
 		SyncHostWithDevice();
 
 		// Update cumulative offsets from start of queue
@@ -135,7 +152,8 @@ void StaticBC::DependencyAccumulation(cuStinger& custing)
 		SyncDeviceWithHost();
 
 		// Now, run the macro for all outbound edges over this queue
-		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing, deviceBcTree, *cusLB, hostBcTree->queue);
+		allVinA_TraverseEdges_LB<bcOperator::dependencyAccumulation>(custing,
+			deviceBcTree, *cusLB, hostBcTree->queue);
 		
 		SyncHostWithDevice();
 
@@ -144,9 +162,10 @@ void StaticBC::DependencyAccumulation(cuStinger& custing)
 	}
 
 	// Now, copy over delta values to host
-	copyArrayDeviceToHost(hostBcTree->delta, host_deltas, hostBcTree->nv, sizeof(float));
+	copyArrayDeviceToHost(hostBcTree->delta, host_deltas, hostBcTree->nv,
+		sizeof(float));
 
-	// // Finally, update the bc values
+	// Finally, update the bc values
 	for (vertexId_t w = 0; w < hostBcTree->nv; w++)
 	{
 		if (w != hostBcTree->root)

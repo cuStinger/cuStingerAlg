@@ -9,7 +9,20 @@
 namespace cuStingerAlgs {
 
 class StaticBC:public StaticAlgorithm {
-public:	
+public:
+	// must pass in the number of roots and a pointer to where the bc values
+	// will be stored
+	StaticBC(length_t K, float *bc_array)
+	{
+		numRoots = K;
+		bc = bc_array;
+	}
+
+	StaticBC(float *bc_array)
+	{
+		numRoots = -1;  // will set this in Init()
+		bc = bc_array;
+	}
 
 	void Init(cuStinger& custing);
 	void Reset();
@@ -29,9 +42,6 @@ public:
 	void DependencyAccumulation(cuStinger& custing);
 	
 	length_t getLevel() { return hostBcTree->currLevel; }
-
-	// Must pass in a root node vertex id, and a pointer to bc values (of length custing.nv)
-	void setInputParameters(vertexId_t root, float *bc_array);
 
 	// User is responsible for de-allocating memory.
 	vertexId_t* getLevelArrayHost()
@@ -54,6 +64,8 @@ private:
 	// a float array which will contain a copy of the device delta array during dependency accumulation
 	float *host_deltas;
 	cusLoadBalance* cusLB;
+	length_t numRoots;
+	bool approx;
 };
 
 
@@ -71,29 +83,25 @@ public:
 
 		vertexId_t prev = atomicCAS(bcd->d + w, INT32_MAX, nextLevel);
 		if (prev == INT32_MAX) {
+			printf("About to enqueue\n");
 			bcd->queue.enqueue(w);
 		}
 		if (bcd->d[w] == nextLevel) {
 			atomicAdd(bcd->sigma + w, bcd->sigma[v]);
 		}
 
+		printf("Finish expand frontier\n");
+
 	}
 
 	// Use macro to clear values in arrays to 0
-	static __device__ __forceinline__ void clearArrays(cuStinger* custing,
+	static __device__ __forceinline__ void setupArrays(cuStinger* custing,
 		vertexId_t src, void* metadata)
 	{
 		bcTree* bcd = (bcTree*) metadata;
 		bcd->d[src] = INT32_MAX;
 		bcd->sigma[src] = 0;
 		bcd->delta[src] = 0.0;
-	}
-
-	static __device__ __forceinline__ void setLevelInfinity(cuStinger* custing,
-		vertexId_t src, void* metadata)
-	{
-		bcTree* bcd = (bcTree*) metadata;
-		bcd->d[src] = INT32_MAX;
 	}
 
 	// Dependency accumulation for one frontier

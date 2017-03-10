@@ -96,7 +96,7 @@ void parse_arguments(int argc, char **argv)
 			break;
 
 			case 'v':
-				options.verbose = atoi(optarg);
+				options.verbose = true;
 			break;
 
 			case 'h':
@@ -278,42 +278,32 @@ int main(const int argc, char **argv)
 	vertexId_t root = 0;
 	int rootsVisited = 0;
 
-	StaticBC sbc;
+	StaticBC sbc(options.numRoots, bc);
 	sbc.Init(custing);
+	cout << "INIT done" << endl;
 	sbc.Reset();
+	cout << "Reset done" << endl;
 
 	cudaEvent_t ce_start,ce_stop;
 	start_clock(ce_start, ce_stop);
 
-	while (rootsVisited < options.numRoots)
-	{
-		// Get a rood node
-		if (options.approx)
-		{
-			root = rand() % nv;
-		} else
-		{
-			root = rootsVisited;
-		}
-		rootsVisited++;
-
-		// Now, set the root node and the bc value array and run
-		sbc.setInputParameters(root, bc);
-		sbc.Run(custing);
-		sbc.Reset();  // clear out the queue and meta-data after every run
-	}
+	sbc.Run(custing);
+	cout << "Run done" << endl;
 
 	float totalTime = end_clock(ce_start, ce_stop);
 	cout << "Total time for Betweenness Centrality Computation: " << totalTime << endl;
 
-	// Release only once all iterations are done.
+	sbc.Reset();
 	sbc.Release();
 
-	cout << "RESULTS: " << endl;
-
-	for (int k = 0; k < nv; k++)
+	if (options.verbose)
 	{
-		cout << "[ " << k  << " ]: " << bc[k] << endl;
+		cout << "RESULTS: " << endl;
+
+		for (int k = 0; k < nv; k++)
+		{
+			cout << "[ " << k  << " ]: " << bc[k] << endl;
+		}
 	}
 
 	// Free memory
