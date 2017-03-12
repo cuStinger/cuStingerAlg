@@ -18,6 +18,7 @@
 #include "static_connected_components/cc.cuh"
 #include "static_page_rank/pr.cuh"
 
+#include "static_katz_centrality/katz.cuh"
 
 using namespace cuStingerAlgs;
 
@@ -113,11 +114,11 @@ int main(const int argc, char *argv[]){
 	scc3.Init(custing);
 	scc3.Reset();
 	start_clock(ce_start, ce_stop);
-	scc3.Run(custing);
+	// scc3.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
-	cout << "The number of iterations           : " << scc3.GetIterationCount() << endl;
-	cout << "The number of connected-compoents  : " << scc3.CountConnectComponents(custing) << endl;
-	cout << "Total time for connected-compoents : " << totalTime << endl; 
+	// cout << "The number of iterations           : " << scc3.GetIterationCount() << endl;
+	// cout << "The number of connected-compoents  : " << scc3.CountConnectComponents(custing) << endl;
+	// cout << "Total time for connected-compoents : " << totalTime << endl; 
 	scc3.Release();
 
 
@@ -144,19 +145,19 @@ int main(const int argc, char *argv[]){
 	}
 	// cout << "Largest vertex is: " << maxV << "   With the length of :" << maxLen << endl;
 
-	bfsTD bfs;
-	bfs.Init(custing);
-	bfs.Reset();
-	bfs.setInputParameters(maxV);
-	start_clock(ce_start, ce_stop);
-	bfs.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
+	// bfsTD bfs;
+	// bfs.Init(custing);
+	// bfs.Reset();
+	// bfs.setInputParameters(maxV);
+	// start_clock(ce_start, ce_stop);
+	// bfs.Run(custing);
+	// totalTime = end_clock(ce_start, ce_stop);
 
-	cout << "The number of levels          : " << bfs.getLevels() << endl;
-	cout << "The number of elements found  : " << bfs.getElementsFound() << endl;
-	cout << "Total time for BFS - Top-Down : " << totalTime << endl; 
+	// cout << "The number of levels          : " << bfs.getLevels() << endl;
+	// cout << "The number of elements found  : " << bfs.getElementsFound() << endl;
+	// cout << "Total time for BFS - Top-Down : " << totalTime << endl; 
 
-	bfs.Release();
+	// bfs.Release();
 
 	// bfsBU bfsbu;
 	// bfsbu.Init(custing);
@@ -188,36 +189,52 @@ int main(const int argc, char *argv[]){
 
 
 
-	StaticPageRank pr;
+	// StaticPageRank pr;
 
-	pr.Init(custing);
-	pr.Reset();
-	pr.setInputParameters(5,0.001);
+	// pr.Init(custing);
+	// pr.Reset();
+	// pr.setInputParameters(5,0.001);
+	// start_clock(ce_start, ce_stop);
+	// pr.Run(custing);
+	// totalTime = end_clock(ce_start, ce_stop);
+	// cout << "The number of iterations      : " << pr.getIterationCount() << endl;
+	// cout << "Total time for pagerank       : " << totalTime << endl; 
+	// cout << "Average time per iteartion    : " << totalTime/(float)pr.getIterationCount() << endl; 
+	// // pr.printRankings(custing);
+
+	// pr.Release();
+
+
+	// StaticPageRank pr2;// =new StaticPageRank();
+
+	// pr2.Init(custing);
+	// pr2.Reset();
+	// pr2.setInputParameters(5,0.001);
+	// start_clock(ce_start, ce_stop);
+	// pr2.Run(custing);
+	// totalTime = end_clock(ce_start, ce_stop);
+	// // cout << "The number of iterations      : " << pr2.getIterationCount() << endl;
+	// // cout << "Total time for pagerank       : " << totalTime << endl; 
+	// // cout << "Average time per iteartion    : " << totalTime/(float)pr2.getIterationCount() << endl; 
+	// // pr2.printRankings(custing);
+
+	// pr2.Release();
+
+
+	katzCentrality kc;
+
+	kc.Init(custing);
+	kc.Reset();
+	kc.setInputParameters(100,maxLen);
 	start_clock(ce_start, ce_stop);
-	pr.Run(custing);
+	kc.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
-	cout << "The number of iterations      : " << pr.getIterationCount() << endl;
-	cout << "Total time for pagerank       : " << totalTime << endl; 
-	cout << "Average time per iteartion    : " << totalTime/(float)pr.getIterationCount() << endl; 
+	cout << "Total time for KC             : " << totalTime << endl; 
+	// cout << "Average time per iteartion    : " << totalTime/(float)pr.getIterationCount() << endl; 
 	// pr.printRankings(custing);
 
-	pr.Release();
+	kc.Release();
 
-
-	StaticPageRank pr2;// =new StaticPageRank();
-
-	pr2.Init(custing);
-	pr2.Reset();
-	pr2.setInputParameters(5,0.001);
-	start_clock(ce_start, ce_stop);
-	pr2.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
-	// cout << "The number of iterations      : " << pr2.getIterationCount() << endl;
-	// cout << "Total time for pagerank       : " << totalTime << endl; 
-	// cout << "Average time per iteartion    : " << totalTime/(float)pr2.getIterationCount() << endl; 
-	// pr2.printRankings(custing);
-
-	pr2.Release();
 
 
 
