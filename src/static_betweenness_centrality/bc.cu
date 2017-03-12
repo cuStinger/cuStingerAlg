@@ -10,8 +10,8 @@
 
 #include "operators.cuh"
 #include "algs.cuh"
-#include "static_betwenness_centrality/bc.cuh"
-#include "static_betwenness_centrality/bc_tree.cuh"
+#include "static_betweenness_centrality/bc.cuh"
+#include "static_betweenness_centrality/bc_tree.cuh"
 
 
 using namespace std;

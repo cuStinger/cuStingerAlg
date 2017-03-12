@@ -65,8 +65,8 @@ cuda_add_library(custingerAlgs
           # src/streaming_triangle_counting/cct_upd.cu
           src/static_page_rank/pr.cu              
           src/load_balance.cu
-          src/static_betwenness_centrality/bc.cu
-          src/static_betwenness_centrality/bc_tree.cu
+          src/static_betweenness_centrality/bc.cu
+          src/static_betweenness_centrality/bc_tree.cu
         )
 
 
@@ -81,8 +81,8 @@ cuda_add_executable(cuAlgStCCT
 
 cuda_add_executable(static_bc_tester
           tests/static_bc.cu
-          src/static_betwenness_centrality/bc.cu
-          src/static_betwenness_centrality/bc_tree.cu
+          src/static_betweenness_centrality/bc.cu
+          src/static_betweenness_centrality/bc_tree.cu
           src/load_balance.cu
           )
 

@@ -12,7 +12,7 @@
 #include <getopt.h>
 
 #include "algs.cuh"
-#include "static_betwenness_centrality/bc.cuh"
+#include "static_betweenness_centrality/bc.cuh"
 
 using namespace cuStingerAlgs;
 using namespace std;
@@ -134,79 +134,6 @@ void parse_arguments(int argc, char **argv)
 	}
 }
 
-
-void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst)
-{
-	cout << "Edge Updates: " << endl;
-	for(int32_t e=0; e<numEdges; e++) {
-		edgeSrc[e] = rand()%nv;
-		edgeDst[e] = rand()%nv;
-
-		cout << "Edge: (" << edgeSrc[e] << ", " << edgeDst[e] << ")";
-		cout << endl;
-	}
-}
-
-
-void rmat_edge (int64_t * iout, int64_t * jout, int SCALE, double A, double B, double C, double D)
-{
-  int64_t i = 0, j = 0;
-  int64_t bit = ((int64_t) 1) << (SCALE - 1);
-
-  while (1) {
-    const double r =  ((double) rand() / (RAND_MAX));//dxor128(env);
-    if (r > A) {                /* outside quadrant 1 */
-      if (r <= A + B)           /* in quadrant 2 */
-        j |= bit;
-      else if (r <= A + B + C)  /* in quadrant 3 */
-        i |= bit;
-      else {                    /* in quadrant 4 */
-        j |= bit;
-        i |= bit;
-      }
-    }
-    if (1 == bit)
-      break;
-
-    /*
-      Assuming R is in (0, 1), 0.95 + 0.1 * R is in (0.95, 1.05).
-      So the new probabilities are *not* the old +/- 10% but
-      instead the old +/- 5%.
-    */
-    A *= (9.5 + ((double) rand() / (RAND_MAX))) / 10;
-    B *= (9.5 + ((double) rand() / (RAND_MAX))) / 10;
-    C *= (9.5 + ((double) rand() / (RAND_MAX))) / 10;
-    D *= (9.5 + ((double) rand() / (RAND_MAX))) / 10;
-    /* Used 5 random numbers. */
-
-    {
-      const double norm = 1.0 / (A + B + C + D);
-      A *= norm;
-      B *= norm;
-      C *= norm;
-    }
-    /* So long as +/- are monotonic, ensure a+b+c+d <= 1.0 */
-    D = 1.0 - (A + B + C);
-
-    bit >>= 1;
-  }
-  /* Iterates SCALE times. */
-  *iout = i;
-  *jout = j;
-}
-
-
-void generateEdgeUpdatesRMAT(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst,double A, double B, double C, double D)
-{
-	int64_t src,dst;
-	int scale = (int)log2(double(nv));
-	for(int32_t e=0; e<numEdges; e++){
-		rmat_edge(&src,&dst,scale, A,B,C,D);
-		edgeSrc[e] = src;
-		edgeDst[e] = dst;
-	}
-}
-
 int main(const int argc, char **argv)
 {
 	parse_arguments(argc, argv);
@@ -238,15 +165,16 @@ int main(const int argc, char **argv)
 		exit(0);
 	}
 
-	cout << "Vertices: " << nv << endl;
-	cout << "Edges: " << ne << endl;
-
 	// if not in approx mode, set numRoots to number of vertices
 	if (!options.approx) {
 		options.numRoots = nv;
 	}
 
-	cout << "Num Roots: " << options.numRoots << endl;
+	if (options.verbose) {
+		cout << "Vertices: " << nv << endl;
+		cout << "Edges: " << ne << endl;
+		cout << "Num Roots: " << options.numRoots << endl;
+	}
 
 	cuStinger custing(defaultInitAllocater,defaultUpdateAllocater);
 
@@ -289,8 +217,7 @@ int main(const int argc, char **argv)
 	sbc.Reset();
 	sbc.Release();
 
-	if (options.verbose)
-	{
+	if (options.verbose) {
 		cout << "RESULTS: " << endl;
 
 		for (int k = 0; k < nv; k++)

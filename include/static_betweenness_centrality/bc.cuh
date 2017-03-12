@@ -2,7 +2,7 @@
 
 #include "algs.cuh"
 #include "load_balance.cuh"
-#include "static_betwenness_centrality/bc_tree.cuh"
+#include "static_betweenness_centrality/bc_tree.cuh"
 
 // Betweenness Centrality
 
