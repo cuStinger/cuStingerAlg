@@ -16,7 +16,7 @@ public:
 
 	vertexId_t*     vertexArray; // Sorting
 
-	vertexQueue queue; // Stores all the active vertices	
+	vertexQueue queue; // Stores all the active vertices
 	double alpha;
 	double alphaI; // Alpha to the power of I  (being the iteration)
 
@@ -27,6 +27,8 @@ public:
 
 	length_t maxDegree;
 	length_t iteration;
+	// number of active vertices at each iteration
+	length_t nActive;
 };
 
 // Label propogation is based on the values from the previous iteration.
@@ -47,10 +49,10 @@ public:
 	}
 
 	length_t GetIterationCount();
-protected: 
+protected:
 	katzData hostKatzData, *deviceKatzData;
-private: 
-	cusLoadBalance* cusLB;		
+private:
+	cusLoadBalance* cusLB;
 };
 
 
@@ -86,7 +88,7 @@ static __device__ void updateKatzAndBounds(cuStinger* custing,vertexId_t src, vo
 	// kd->lowerBound[src]=0;
 	kd->upperBound[src]=0;
 
-	kd->vertexArray[src]=src;	
+	kd->vertexArray[src]=src;
 
 }
 
@@ -95,6 +97,13 @@ static __device__ void printKID(cuStinger* custing,vertexId_t src, void* metadat
 	katzData* kd = (katzData*)metadata;
 	if(kd->vertexArray[src]==kd->K)
 		printf("%d\n",src);
+}
+
+static __device__ void countActive(cuStinger* custing,vertexId_t src, void* metadata){
+	katzData* kd = (katzData*)metadata;
+	if (kd->upperBound[src] > kd->lowerBound[kd->vertexArray[kd->K]]) {
+		kd -> nActive ++; // TODO how can i do this as an atomic instruction?
+	}
 }
 
 

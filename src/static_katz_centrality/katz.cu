@@ -1,6 +1,6 @@
 
 
-	
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -65,7 +65,9 @@ void katzCentrality::Run(cuStinger& custing){
 	standard_context_t context(false);
 
 	hostKatzData.iteration = 1;
-	while(hostKatzData.iteration  < 5 ){
+	
+	hostKatzData.nActive = custing.nv;
+	while(hostKatzData.nActive  > hostKatzData.K ){
 
 		hostKatzData.alphaI = pow(hostKatzData.alpha,hostKatzData.iteration);
 		hostKatzData.upperBoundConst = pow(hostKatzData.alpha,hostKatzData.iteration+1)/((1.0-hostKatzData.alpha*(double)hostKatzData.maxDegree));
@@ -79,11 +81,15 @@ void katzCentrality::Run(cuStinger& custing){
 		SyncHostWithDevice();
 		hostKatzData.iteration++;
 
-		length_t* temp = hostKatzData.nPathsCurr; hostKatzData.nPathsCurr=hostKatzData.nPathsPrev; hostKatzData.nPathsPrev=temp; 
+		length_t* temp = hostKatzData.nPathsCurr; hostKatzData.nPathsCurr=hostKatzData.nPathsPrev; hostKatzData.nPathsPrev=temp;
 		SyncDeviceWithHost();
 
 		mergesort(hostKatzData.lowerBound,hostKatzData.vertexArray,custing.nv, less_t<double>(),context);
-		
+
+		// TODO I don't know when I need to sync the device with the host
+		hostKatzData.nActive = 0;
+		allVinG_TraverseVertices<katzCentralityOperator::countActive>(custing,deviceKatzData);
+
 	}
 }
 
@@ -91,4 +97,3 @@ void katzCentrality::Run(cuStinger& custing){
 
 
 }// cuStingerAlgs namespace
-
