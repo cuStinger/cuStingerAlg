@@ -50,8 +50,6 @@ void katzCentrality::setInputParameters(length_t K_,length_t maxDegree_, length_
 	hostKatzData.maxDegree=maxDegree_;
 	hostKatzData.maxIteration=maxIteration_;
 	hostKatzData.alpha = 1.0/((double)hostKatzData.maxDegree+1.0);
-	cout << "ALPHA " << hostKatzData.alpha << endl;
-
 }
 
 
@@ -78,7 +76,6 @@ void katzCentrality::Run(cuStinger& custing){
 	hostKatzData.iteration = 1;
 	
 	hostKatzData.nActive = custing.nv;
-	//while(hostKatzData.nActive  > hostKatzData.K && hostKatzData.iteration <hostKatzData.maxIteration){
 	while(hostKatzData.nActive  > hostKatzData.K){
 
 		hostKatzData.alphaI          = pow(hostKatzData.alpha,hostKatzData.iteration);

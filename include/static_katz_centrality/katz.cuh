@@ -88,11 +88,9 @@ static __device__ void updateKatzAndBounds(cuStinger* custing,vertexId_t src, vo
 	katzData* kd = (katzData*)metadata;
 	kd->KC[src]=kd->KC[src] + kd->alphaI * (double)kd->nPathsCurr[src];
 	kd->lowerBound[src]=kd->KC[src] + kd->lowerBoundConst * (double)kd->nPathsCurr[src];
-	kd->upperBound[src]=kd->KC[src] + kd->upperBoundConst * (double)kd->nPathsCurr[src];
-    
+	kd->upperBound[src]=kd->KC[src] + kd->upperBoundConst * (double)kd->nPathsCurr[src];   
 	kd->lowerBoundSort[src]=kd->lowerBound[src];
 	kd->vertexArray[src]=src;
-
 }
 
 static __device__ void printKID(cuStinger* custing,vertexId_t src, void* metadata){
@@ -107,6 +105,14 @@ static __device__ void printKID(cuStinger* custing,vertexId_t src, void* metadat
 static __device__ void countActive(cuStinger* custing,vertexId_t src, void* metadata){
 	katzData* kd = (katzData*)metadata;
 		if (kd->upperBound[src] > kd->lowerBound[kd->vertexArray[kd->K-1]]) {
+		atomicAdd(&(kd -> nActive),1);
+		// kd -> nActive ++; // TODO how can i do this as an atomic instruction?
+	}
+}
+
+static __device__ void countActive(cuStinger* custing,vertexId_t src, void* metadata){
+	katzData* kd = (katzData*)metadata;
+		if (kd->upperBound[src] > kd->lowerBound[kd->vertexArray[kd->K]]) {
 		atomicAdd(&(kd -> nActive),1);
 		// kd -> nActive ++; // TODO how can i do this as an atomic instruction?
 	}
