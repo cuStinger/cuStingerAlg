@@ -110,14 +110,6 @@ static __device__ void countActive(cuStinger* custing,vertexId_t src, void* meta
 	}
 }
 
-static __device__ void countActive(cuStinger* custing,vertexId_t src, void* metadata){
-	katzData* kd = (katzData*)metadata;
-		if (kd->upperBound[src] > kd->lowerBound[kd->vertexArray[kd->K]]) {
-		atomicAdd(&(kd -> nActive),1);
-		// kd -> nActive ++; // TODO how can i do this as an atomic instruction?
-	}
-}
-
 
 };
 
