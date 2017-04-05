@@ -42,9 +42,7 @@ void StaticPageRank::Init(cuStinger& custing){
 
 	devicePRData = (pageRankData*)allocDeviceArray(1, sizeof(pageRankData));
 	SyncDeviceWithHost();
-	// cusLoadBalance cusLB(custing);
-	// cusLoadBalance cusLB(custing,true,false);
-	// cusLoadBalance cusLB(custing,false,true);
+
 	cusLB = new cusLoadBalance(custing,false,true);
 
 
@@ -70,7 +68,6 @@ void StaticPageRank::Release(){
 }
 
 void StaticPageRank::Run(cuStinger& custing){
-	cout << "The number of non zeros is : " << cusLB->currArrayLen << endl;
 
 	allVinG_TraverseVertices<StaticPageRankOperator::init>(custing,devicePRData);
 	hostPRData.iteration = 0;
@@ -86,21 +83,10 @@ void StaticPageRank::Run(cuStinger& custing){
 		// allVinA_TraverseEdges_LB<StaticPageRankOperator::addContribuitions>(custing,devicePRData,*cusLB);
 		allVinA_TraverseVertices<StaticPageRankOperator::dampAndDiffAndCopy>(custing,devicePRData,*cusLB);
 
-		// allVinG_TraverseVertices<StaticPageRankOperator::resetCurr>(custing,devicePRData);
-		// allVinG_TraverseVertices<StaticPageRankOperator::computeContribuitionPerVertex>(custing,devicePRData);
-		// allVinA_TraverseEdges_LB<StaticPageRankOperator::addContribuitionsUndirected>(custing,devicePRData,cusLB);
-		// allVinG_TraverseVertices<StaticPageRankOperator::dampAndDiffAndCopy>(custing,devicePRData);
-
-		// copyArrayDeviceToDevice(hostPRData.currPR,hostPRData.prevPR, hostPRData.nv,sizeof(prType));
-
-		// allVinG_TraverseVertices<StaticPageRankOperator::print>(custing,d_out);
-
 		allVinG_TraverseVertices<StaticPageRankOperator::sum>(custing,devicePRData);
 		SyncHostWithDevice();
 
 		copyArrayDeviceToHost(hostPRData.reductionOut,&h_out, 1, sizeof(prType));
-		// h_out=hostPRData.threshhold+1;
-		// cout << "The number of elements : " << hostPRData.nv << endl;
 
 		hostPRData.iteration++;
 	}
