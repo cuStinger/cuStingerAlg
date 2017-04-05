@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 project( custinger )
 
-set(CUDA_HOST_COMPILER /usr/bin/gcc-4.8)  
 FIND_PACKAGE(CUDA REQUIRED)
 
 INCLUDE(FindCUDA)
@@ -32,6 +31,8 @@ SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 LIST(APPEND CUDA_NCCC_FLAGS --compiler-options)
 LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_35,code=sm_35)
+LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_50,code=sm_50)
+LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_60,code=sm_60)
 LIST(APPEND CUDA_NVCC_FLAGS "-O3;-DVERBOSE;")
 LIST(APPEND CUDA_NVCC_FLAGS "-Xcompiler -Wall -D_FORCE_INLINES; --expt-extended-lambda;-use_fast_math")
 
@@ -59,6 +60,8 @@ cuda_add_library(custingerAlgs
           src/streaming_triangle_counting/cct_upd.cu
           src/static_triangle_counting/cct.cu
           src/static_breadth_first_search/bfs_top_down.cu
+          src/static_breadth_first_search/bfs_bottom_up.cu
+          src/static_breadth_first_search/bfs_hybrid.cu
           src/static_connected_components/cc_baseline.cu
           src/static_connected_components/cc_concurrent.cu
           src/static_connected_components/cc_load_balanced.cu

@@ -13,8 +13,8 @@
 #include "algs.cuh"
 
 #include "static_breadth_first_search/bfs_top_down.cuh"
-// #include "static_breadth_first_search/bfs_bottom_up.cuh"
-// #include "static_breadth_first_search/bfs_hybrid.cuh"
+#include "static_breadth_first_search/bfs_bottom_up.cuh"
+#include "static_breadth_first_search/bfs_hybrid.cuh"
 #include "static_connected_components/cc.cuh"
 #include "static_page_rank/pr.cuh"
 #include "static_betweenness_centrality/bc.cuh"
@@ -159,34 +159,33 @@ int main(const int argc, char *argv[]){
 
 	bfs.Release();
 
-	// bfsBU bfsbu;
-	// bfsbu.Init(custing);
-	// bfsbu.Reset();
-	// bfsbu.setInputParameters(maxV);
-	// start_clock(ce_start, ce_stop);
-	// bfsbu.Run(custing);
-	// totalTime = end_clock(ce_start, ce_stop);
+	bfsBU bfsbu;
+	bfsbu.Init(custing);
+	bfsbu.Reset();
+	bfsbu.setInputParameters(maxV);
+	start_clock(ce_start, ce_stop);
+	bfsbu.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
 
-	// cout << "The number of levels          : " << bfsbu.getLevels() << endl;
-	// cout << "The number of elements found  : " << bfsbu.getElementsFound(custing) << endl;
-	// cout << "Total time for BFS - Bottom-up: " << totalTime << endl; 
+	cout << "The number of levels          : " << bfsbu.getLevels() << endl;
+	cout << "The number of elements found  : " << bfsbu.getElementsFound(custing) << endl;
+	cout << "Total time for BFS - Bottom-up: " << totalTime << endl; 
 
-	// bfsbu.Release();
+	bfsbu.Release();
 
-	// bfsHybrid bfsHy;
-	// bfsHy.Init(custing);
-	// bfsHy.Reset();
-	// bfsHy.setInputParameters(maxV);
-	// start_clock(ce_start, ce_stop);
-	// bfsHy.Run(custing);
-	// totalTime = end_clock(ce_start, ce_stop);
+	bfsHybrid bfsHy;
+	bfsHy.Init(custing);
+	bfsHy.Reset();
+	bfsHy.setInputParameters(maxV);
+	start_clock(ce_start, ce_stop);
+	bfsHy.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
 
-	// cout << "The number of levels          : " << bfsHy.getLevels() << endl;
-	// cout << "The number of elements found  : " << bfsHy.getElementsFound(custing) << endl;
-	// cout << "Total time for BFS - Hybrid   : " << totalTime << endl; 
+	cout << "The number of levels          : " << bfsHy.getLevels() << endl;
+	cout << "The number of elements found  : " << bfsHy.getElementsFound(custing) << endl;
+	cout << "Total time for BFS - Hybrid   : " << totalTime << endl; 
 
-	// bfsHy.Release();
-
+	bfsHy.Release();
 
 
 	StaticPageRank pr;
@@ -199,47 +198,10 @@ int main(const int argc, char *argv[]){
 	totalTime = end_clock(ce_start, ce_stop);
 	cout << "The number of iterations      : " << pr.getIterationCount() << endl;
 	cout << "Total time for pagerank       : " << totalTime << endl; 
-	cout << "Average time per iteartion    : " << totalTime/(float)pr.getIterationCount() << endl; 
+	cout << "Average time per iteration    : " << totalTime/(float)pr.getIterationCount() << endl; 
 	// pr.printRankings(custing);
 
 	pr.Release();
-
-
-	StaticPageRank pr2;// =new StaticPageRank();
-
-	pr2.Init(custing);
-	pr2.Reset();
-	pr2.setInputParameters(5,0.001);
-	start_clock(ce_start, ce_stop);
-	pr2.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
-	// cout << "The number of iterations      : " << pr2.getIterationCount() << endl;
-	// cout << "Total time for pagerank       : " << totalTime << endl; 
-	// cout << "Average time per iteartion    : " << totalTime/(float)pr2.getIterationCount() << endl; 
-	// pr2.printRankings(custing);
-
-	pr2.Release();
-
-
-	float *bc = new float[nv];
-	for (int k = 0; k < nv; k++)
-	{
-		bc[k] = 0;
-	}
-	StaticBC sbc(bc);
-	sbc.Init(custing);
-	sbc.Reset();
-
-	start_clock(ce_start, ce_stop);
-	sbc.Run(custing);
-
-	totalTime = end_clock(ce_start, ce_stop);
-	cout << "Total time for Static Betweenness Centrality: " << totalTime << endl;
-
-	sbc.Reset();
-	sbc.Release();
-	delete[] bc;
-
 
 
 

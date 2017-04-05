@@ -69,7 +69,6 @@ static __device__ void init(cuStinger* custing,vertexId_t src, void* metadata){
 	pageRankData* pr = (pageRankData*)metadata;
 	pr->absDiff[src]=pr->currPR[src]=0.0;
 	pr->prevPR[src]=1/float(pr->nv);
-	// printf("%f, ", pr->prevPR[src]);
 	*(pr->reductionOut)=0;
 }
 
@@ -133,23 +132,6 @@ static __device__ void print(cuStinger* custing,vertexId_t src, void* metadata){
 	}
 
 }
-
-
-
-// static __device__ void addDampening(cuStinger* custing,vertexId_t src, void* metadata){
-// 	pageRankData* pr = (pageRankData*)metadata;
-// 	pr->currPR[src]=(1-pr->damp)/float(pr->nv)+pr->damp*pr->currPR[src];
-// }
-
-// static __device__ void absDiff(cuStinger* custing,vertexId_t src, void* metadata){
-// 	pageRankData* pr = (pageRankData*)metadata;
-// 	pr->absDiff[src]= abs(pr->currPR[src]-pr->prevPR[src]);
-// }
-
-// static __device__ void prevEqualCurr(cuStinger* custing,vertexId_t src, void* metadata){
-// 	pageRankData* pr = (pageRankData*)metadata;
-// 	pr->prevPR[src]=pr->currPR[src];
-// }
 
 
 
