@@ -1,6 +1,6 @@
 
 
-	
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -22,11 +22,12 @@ using namespace mgpu;
 namespace cuStingerAlgs {
 
 void katzCentrality::Init(cuStinger& custing){
-	hostKatzData.nPathsCurr = (length_t*) allocDeviceArray(custing.nv+1, sizeof(length_t));
-	hostKatzData.nPathsPrev = (length_t*) allocDeviceArray(custing.nv+1, sizeof(length_t));
+	hostKatzData.nPathsCurr = (unsigned long long int*) allocDeviceArray(custing.nv+1, sizeof(unsigned long long int));
+	hostKatzData.nPathsPrev = (unsigned long long int*) allocDeviceArray(custing.nv+1, sizeof(unsigned long long int));
 	hostKatzData.vertexArray = (vertexId_t*) allocDeviceArray(custing.nv+1, sizeof(vertexId_t));
 	hostKatzData.KC         = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
 	hostKatzData.lowerBound = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
+	hostKatzData.lowerBoundSort = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
 	hostKatzData.upperBound = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
 
 	deviceKatzData = (katzData*)allocDeviceArray(1, sizeof(katzData));
@@ -44,6 +45,15 @@ void katzCentrality::Reset(){
 	copyArrayHostToDevice(&hostKatzData,deviceKatzData,1, sizeof(katzData));
 }
 
+void katzCentrality::setInputParameters(length_t K_,length_t maxDegree_, length_t maxIteration_){
+	hostKatzData.K=K_;
+	hostKatzData.maxDegree=maxDegree_;
+	hostKatzData.maxIteration=maxIteration_;
+	hostKatzData.alpha = 1.0/((double)hostKatzData.maxDegree+1.0);
+	cout << "ALPHA " << hostKatzData.alpha << endl;
+
+}
+
 
 void katzCentrality::Release(){
 	// free(cusLB);
@@ -54,22 +64,28 @@ void katzCentrality::Release(){
 	freeDeviceArray(hostKatzData.vertexArray);
 	freeDeviceArray(hostKatzData.KC);
 	freeDeviceArray(hostKatzData.lowerBound);
+	freeDeviceArray(hostKatzData.lowerBoundSort);
 	freeDeviceArray(hostKatzData.upperBound);
 }
 
 void katzCentrality::Run(cuStinger& custing){
 
-	allVinG_TraverseVertices<katzCentralityOperator::initNumPaths>(custing,deviceKatzData);
+	allVinG_TraverseVertices<katzCentralityOperator::init>(custing,deviceKatzData);
 
 	// GET MAX DEGREE
 	standard_context_t context(false);
 
 	hostKatzData.iteration = 1;
-	while(hostKatzData.iteration  < 5 ){
+	
+	hostKatzData.nActive = custing.nv;
+	//while(hostKatzData.nActive  > hostKatzData.K && hostKatzData.iteration <hostKatzData.maxIteration){
+	while(hostKatzData.nActive  > hostKatzData.K){
 
-		hostKatzData.alphaI = pow(hostKatzData.alpha,hostKatzData.iteration);
-		hostKatzData.upperBoundConst = pow(hostKatzData.alpha,hostKatzData.iteration+1)/((1.0-hostKatzData.alpha*(double)hostKatzData.maxDegree));
+		hostKatzData.alphaI          = pow(hostKatzData.alpha,hostKatzData.iteration);
 		hostKatzData.lowerBoundConst = pow(hostKatzData.alpha,hostKatzData.iteration+1)/((1.0-hostKatzData.alpha));
+		hostKatzData.upperBoundConst = pow(hostKatzData.alpha,hostKatzData.iteration+1)/((1.0-hostKatzData.alpha*(double)hostKatzData.maxDegree));
+
+		//cout << hostKatzData.iteration << " " << hostKatzData.alphaI << " " << hostKatzData.lowerBoundConst << " " << hostKatzData.upperBoundConst << endl;
 		SyncDeviceWithHost();
 
 		allVinG_TraverseVertices<katzCentralityOperator::initNumPathsPerIteration>(custing,deviceKatzData);
@@ -79,16 +95,49 @@ void katzCentrality::Run(cuStinger& custing){
 		SyncHostWithDevice();
 		hostKatzData.iteration++;
 
-		length_t* temp = hostKatzData.nPathsCurr; hostKatzData.nPathsCurr=hostKatzData.nPathsPrev; hostKatzData.nPathsPrev=temp; 
+		unsigned long long int* temp = hostKatzData.nPathsCurr; hostKatzData.nPathsCurr=hostKatzData.nPathsPrev; hostKatzData.nPathsPrev=temp;
+		// printf("%p %p %p\n",temp, hostKatzData.nPathsCurr,hostKatzData.nPathsPrev); 
+
+		hostKatzData.nActive = 0;
 		SyncDeviceWithHost();
 
-		mergesort(hostKatzData.lowerBound,hostKatzData.vertexArray,custing.nv, less_t<double>(),context);
-		
+		mergesort(hostKatzData.lowerBoundSort,hostKatzData.vertexArray,custing.nv, greater_t<double>(),context);
+
+		// TODO I don't know when I need to sync the device with the host
+		allVinG_TraverseVertices<katzCentralityOperator::countActive>(custing,deviceKatzData);
+		//allVinA_TraverseVertices<katzCentralityOperator::printKID>(custing,deviceKatzData,hostKatzData.vertexArray, custing.nv);
+/* 	unsigned long long int* nPathsCurr = (unsigned long long int*) allocHostArray(custing.nv+1, sizeof(unsigned long long int));
+	unsigned long long int* nPathsPrev = (unsigned long long int*) allocHostArray(custing.nv+1, sizeof(unsigned long long int));
+	vertexId_t* vertexArray = (vertexId_t*) allocHostArray(custing.nv+1, sizeof(vertexId_t));
+	double* KC         = (double*) allocHostArray(custing.nv+1, sizeof(double));
+	double* lowerBound = (double*) allocHostArray(custing.nv+1, sizeof(double));
+	double* upperBound = (double*) allocHostArray(custing.nv+1, sizeof(double));
+    
+	copyArrayDeviceToHost(hostKatzData.lowerBound,lowerBound,custing.nv, sizeof(double)) ;
+	copyArrayDeviceToHost(hostKatzData.upperBound,upperBound,custing.nv, sizeof(double)) ;
+	copyArrayDeviceToHost(hostKatzData.KC,KC,custing.nv, sizeof(double)) ;
+	copyArrayDeviceToHost(hostKatzData.vertexArray,vertexArray,custing.nv, sizeof(vertexId_t)) ;
+
+//	for (int i=0; i<10; i++){
+//	  printf("%d : katz = %g    lower = %g    upper=%g\n",vertexArray[i], KC[vertexArray[i]],lowerBound[vertexArray[i]],upperBound[vertexArray[i]]);
+//	}
+
+  	freeHostArray(nPathsCurr);
+	freeHostArray(nPathsPrev);
+    freeHostArray(vertexArray);
+	freeHostArray(KC);
+    freeHostArray(lowerBound);
+	freeHostArray(upperBound);
+*/		
+		SyncHostWithDevice();
+		cout << hostKatzData.nActive << endl;
 	}
 }
 
-
+length_t katzCentrality::getIterationCount(){
+	SyncHostWithDevice();
+	return hostKatzData.iteration;
+}
 
 
 }// cuStingerAlgs namespace
-

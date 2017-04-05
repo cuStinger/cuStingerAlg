@@ -225,13 +225,13 @@ int main(const int argc, char *argv[]){
 
 	kc.Init(custing);
 	kc.Reset();
-	kc.setInputParameters(100,maxLen);
+	kc.setInputParameters(100,maxLen,20);
 	start_clock(ce_start, ce_stop);
 	kc.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
+	cout << "The number of iterations      : " << kc.getIterationCount() << endl;
 	cout << "Total time for KC             : " << totalTime << endl; 
-	// cout << "Average time per iteartion    : " << totalTime/(float)pr.getIterationCount() << endl; 
-	// pr.printRankings(custing);
+	cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
 
 	kc.Release();
 
