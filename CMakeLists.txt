@@ -31,6 +31,7 @@ SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 LIST(APPEND CUDA_NCCC_FLAGS --compiler-options)
 LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_35,code=sm_35)
+LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_50,code=sm_50)
 LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_60,code=sm_60)
 LIST(APPEND CUDA_NVCC_FLAGS "-O3;-DVERBOSE;")
 LIST(APPEND CUDA_NVCC_FLAGS "-Xcompiler -Wall -D_FORCE_INLINES; --expt-extended-lambda;-use_fast_math")
@@ -69,6 +70,8 @@ cuda_add_library(custingerAlgs
           # src/streaming_triangle_counting/cct_upd.cu
           src/static_page_rank/pr.cu              
           src/load_balance.cu
+          src/static_betweenness_centrality/bc.cu
+          src/static_betweenness_centrality/bc_tree.cu
         )
 
 
@@ -81,15 +84,23 @@ cuda_add_executable(cuAlgStCCT
           tests/cct_upd.cpp
            )
 
+cuda_add_executable(static_bc_tester
+          tests/static_bc.cu
+          src/static_betweenness_centrality/bc.cu
+          src/static_betweenness_centrality/bc_tree.cu
+          src/load_balance.cu
+          )
+
 cuda_add_executable(cus-alg-tester 
           tests/alg-tester.cu
-           )
+          )
+
 
 cuda_add_executable(katz-tester 
           tests/katz-tester.cu
            )
 
-
+TARGET_LINK_LIBRARIES(static_bc_tester custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 TARGET_LINK_LIBRARIES(cuAlgCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 TARGET_LINK_LIBRARIES(cuAlgStCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 
