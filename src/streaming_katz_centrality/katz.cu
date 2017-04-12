@@ -45,13 +45,6 @@ void katzCentralityStreaming::Init(cuStinger& custing){
 	hostKatzData.nPathsData = (ulong_t*) allocDeviceArray((custing.nv+1)*hostKatzData.maxIteration, sizeof(ulong_t));
 	hostKatzData.alphaI         = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
 
-	// hostKatzData.lowerBound = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
-	// hostKatzData.lowerBoundSort = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
-	// hostKatzData.upperBound = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
-	// hostKatzData.vertexArray = (vertexId_t*) allocDeviceArray(custing.nv+1, sizeof(vertexId_t));
-
-
-
 	double* hAlphiI = (double*)allocHostArray(hostKatzData.maxIteration, sizeof(double));
 	ulong_t** hPathsPtr = (ulong_t**)allocHostArray(hostKatzData.maxIteration, sizeof(ulong_t*));
 	hAlphiI[0]=hostKatzData.alpha;

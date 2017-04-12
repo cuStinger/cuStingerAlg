@@ -92,26 +92,41 @@ int main(const int argc, char *argv[]){
 		}
 	}
 
+	for (int r=0; r<1; r++){
+		katzCentrality kc;
+		kc.setInitParameters(20,true);
+		kc.Init(custing);
+		kc.Reset();
+		kc.setInputParameters(100,maxLen);
+		start_clock(ce_start, ce_stop);
+		kc.Run(custing);
+		totalTime = end_clock(ce_start, ce_stop);
+		cout << "The number of iterations      : " << kc.getIterationCount() << endl;
+		cout << "Total time for KC             : " << totalTime << endl; 
+		cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
+		kc.Release();
+	}
 
-	katzCentrality kc;
+	for (int r=0; r<1; r++){
 
-	kc.Init(custing);
-	kc.Reset();
-	kc.setInputParameters(100,maxLen,20);
-	start_clock(ce_start, ce_stop);
-	kc.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
-	cout << "The number of iterations      : " << kc.getIterationCount() << endl;
-	cout << "Total time for KC             : " << totalTime << endl; 
-	cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
+		katzCentrality kc2;
+		kc2.setInitParameters(20,false);
+		kc2.Init(custing);
+		kc2.Reset();
+		kc2.setInputParameters(100,maxLen);
+		start_clock(ce_start, ce_stop);
+		kc2.Run(custing);
+		totalTime = end_clock(ce_start, ce_stop);
+		cout << "The number of iterations      : " << kc2.getIterationCount() << endl;
+		cout << "Total time for KC             : " << totalTime << endl; 
+		cout << "Average time per iteartion    : " << totalTime/(float)kc2.getIterationCount() << endl; 
 
-	kc.Release();
+		kc2.Release();
+	}
+	// katzCentralityStreaming kcs;
 
-
-	katzCentralityStreaming kcs;
-
-	kcs.setInitParameters(100,maxLen,20);
-	kcs.Init(custing);
+	// kcs.setInitParameters(100,maxLen,20);
+	// kcs.Init(custing);
 	// kcs.Reset();
 	// start_clock(ce_start, ce_stop);
 	// // kcs.Run(custing);
@@ -120,7 +135,7 @@ int main(const int argc, char *argv[]){
 	// // cout << "Total time for KC             : " << totalTime << endl; 
 	// // cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
 
-	kcs.Release();
+	// kcs.Release();
 
 
 

@@ -3,11 +3,14 @@
 #include "algs.cuh"
 #include "operators.cuh"
 
+#include "static_katz_centrality/katz.cuh"
+
+
 typedef unsigned long long int ulong_t;
 
 namespace cuStingerAlgs {
 
-class katzDataStreaming{
+class katzDataStreaming:katzData{
 public:
 	ulong_t*   newPathsCurr;
 	ulong_t*   newPathsPrev;

@@ -3,12 +3,21 @@
 #include "algs.cuh"
 #include "operators.cuh"
 
+
+typedef unsigned long long int ulong_t;
+
+
 namespace cuStingerAlgs {
 
 class katzData{
 public:
-	unsigned long long int*   nPathsCurr;
-	unsigned long long int*   nPathsPrev;
+
+	ulong_t*   nPathsData;
+	ulong_t**  nPaths;     // Will be used for dynamic graph algorithm which requires storing paths of all iterations.
+
+
+	ulong_t*   nPathsCurr;
+	ulong_t*   nPathsPrev;
 
 	double*     KC;
 	double*     lowerBound;
@@ -31,17 +40,19 @@ public:
 	length_t maxIteration;
 	// number of active vertices at each iteration
 	length_t nActive;
+	length_t nv;
 };
 
 // Label propogation is based on the values from the previous iteration.
 class katzCentrality:public StaticAlgorithm{
 public:
+	void setInitParameters(length_t maxIteration_, bool isStatic_=true);	
 	virtual void Init(cuStinger& custing);
 	virtual void Reset();
 	virtual void Run(cuStinger& custing);
 	virtual void Release();
 
-	void setInputParameters(length_t K_,length_t maxDegree_, length_t maxIteration_);
+	void setInputParameters(length_t K_,length_t maxDegree_);
 
 	void SyncHostWithDevice(){
 		copyArrayDeviceToHost(deviceKatzData,&hostKatzData,1, sizeof(katzData));
@@ -55,6 +66,9 @@ protected:
 	katzData hostKatzData, *deviceKatzData;
 private:
 	cusLoadBalance* cusLB;
+	bool isStatic;
+	ulong_t** hPathsPtr;  // Will be used to store pointers to all iterations of the Katz centrality results
+
 };
 
 
@@ -75,6 +89,8 @@ static __device__ void init(cuStinger* custing,vertexId_t src, void* metadata){
 static __device__ void initNumPathsPerIteration(cuStinger* custing,vertexId_t src, void* metadata){
 	katzData* kd = (katzData*)metadata;
 	kd->nPathsCurr[src]=0;
+	// if(src==1)
+		// printf("vertex 1: %ld %ld \n",kd->nPathsPrev[src], kd->nPathsCurr[src]);
 }
 
 
@@ -96,9 +112,12 @@ static __device__ void updateKatzAndBounds(cuStinger* custing,vertexId_t src, vo
 static __device__ void printKID(cuStinger* custing,vertexId_t src, void* metadata){
 
 	katzData* kd = (katzData*)metadata;
-	if(kd->vertexArray[src]==kd->K)
-		printf("%d\n",src);
-  
+	// if(kd->vertexArray[src]==kd->K)
+	// 	printf("%d\n",src);
+	if(kd->nPathsPrev[src]!=1)
+		printf("%d %ld\n ", src,kd->nPathsPrev[src]);
+	if(kd->nPathsCurr[src]!=0)
+		printf("%d %ld\n ", src,kd->nPathsCurr[src]);
 
 }
 
@@ -106,7 +125,6 @@ static __device__ void countActive(cuStinger* custing,vertexId_t src, void* meta
 	katzData* kd = (katzData*)metadata;
 		if (kd->upperBound[src] > kd->lowerBound[kd->vertexArray[kd->K-1]]) {
 		atomicAdd(&(kd -> nActive),1);
-		// kd -> nActive ++; // TODO how can i do this as an atomic instruction?
 	}
 }
 
