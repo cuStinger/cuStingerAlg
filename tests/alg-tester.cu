@@ -189,7 +189,7 @@ int main(const int argc, char *argv[]){
 	bfsHy.Release();
 
 
-	// StaticPageRank pr;
+	StaticPageRank pr;
 
 	// pr.Init(custing);
 	// pr.Reset();
@@ -215,19 +215,6 @@ int main(const int argc, char *argv[]){
 	cout << "Average time per iteration    : " << totalTime/(float)pr.getIterationCount() << endl; 
 	// pr.printRankings(custing);
 
-	katzCentrality kc;
-
-	kc.Init(custing);
-	kc.Reset();
-	kc.setInputParameters(100,maxLen,20);
-	start_clock(ce_start, ce_stop);
-	kc.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
-	cout << "The number of iterations      : " << kc.getIterationCount() << endl;
-	cout << "Total time for KC             : " << totalTime << endl; 
-	cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
-
-	kc.Release();
 
 	custing.freecuStinger();
 
