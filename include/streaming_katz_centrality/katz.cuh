@@ -10,44 +10,20 @@ typedef unsigned long long int ulong_t;
 
 namespace cuStingerAlgs {
 
-class katzDataStreaming:katzData{
+class katzDataStreaming: public katzData{
 public:
 	ulong_t*   newPathsCurr;
 	ulong_t*   newPathsPrev;
-
-	ulong_t*   nPathsData;
-	ulong_t**  nPaths;
-	// unsigned long long int*   nPathsPrev;
-
-	double*     KC;
-	// double*     lowerBound;
-	// double*     lowerBoundSort;
-	// double*     upperBound;
-
-	vertexId_t*     vertexArray; // Sorting
-
-	vertexQueue queue; // Stores all the active vertices
-	double alpha;
-	double* alphaI; // Alpha to the power of I  (being the iteration)
-
-	// double lowerBoundConst;
-	// double upperBoundConst;
-
-	length_t K;
-
-	length_t maxDegree;
-	length_t iteration;
-	length_t maxIteration;
-	// number of active vertices at each iteration
-	// length_t nActive;
 };
 
-class katzCentralityStreaming{
+class katzCentralityStreaming:protected katzCentrality{
 public:
 	void setInitParameters(length_t K_,length_t maxDegree_, length_t maxIteration_);
 
 	virtual void Init(cuStinger& custing);
-	virtual void Reset();
+	// virtual void Reset();
+
+	void runStatic(cuStinger& custing);
 
 	// virtual void insertedBatchUpdate(cuStinger& custing);
 	// virtual void deletedBatchUpdate(cuStinger& custing);
@@ -55,17 +31,20 @@ public:
 
 
 	void SyncHostWithDevice(){
+		printf("this should never happen\n"); fflush(stdout);
 		copyArrayDeviceToHost(deviceKatzData,&hostKatzData,1, sizeof(katzDataStreaming));
 	}
 	void SyncDeviceWithHost(){
+		printf("this should never happen\n"); fflush(stdout);
 		copyArrayHostToDevice(&hostKatzData,deviceKatzData,1, sizeof(katzDataStreaming));
 	}
 
 	length_t getIterationCount();
-protected:
-	katzDataStreaming hostKatzData, *deviceKatzData;
+// protected:
+// 	katzDataStreaming hostKatzDataStr, *deviceKatzDataStr;
 private:
 	cusLoadBalance* cusLB;
+	katzCentrality kcStatic;
 };
 
 

@@ -46,24 +46,24 @@ public:
 // Label propogation is based on the values from the previous iteration.
 class katzCentrality:public StaticAlgorithm{
 public:
-	void setInitParameters(length_t maxIteration_, bool isStatic_=true);	
+	void setInitParameters(length_t maxIteration_,length_t K_,length_t maxDegree_, bool isStatic_=true);
 	virtual void Init(cuStinger& custing);
 	virtual void Reset();
 	virtual void Run(cuStinger& custing);
 	virtual void Release();
 
-	void setInputParameters(length_t K_,length_t maxDegree_);
-
-	void SyncHostWithDevice(){
-		copyArrayDeviceToHost(deviceKatzData,&hostKatzData,1, sizeof(katzData));
+	virtual void SyncHostWithDevice(){
+		copyArrayDeviceToHost(deviceKatzData,hostKatzData,1, sizeof(katzData));
 	}
-	void SyncDeviceWithHost(){
-		copyArrayHostToDevice(&hostKatzData,deviceKatzData,1, sizeof(katzData));
+	virtual void SyncDeviceWithHost(){
+		copyArrayHostToDevice(hostKatzData,deviceKatzData,1, sizeof(katzData));
 	}
 
 	length_t getIterationCount();
 protected:
-	katzData hostKatzData, *deviceKatzData;
+	// katzData hostKatzData, *deviceKatzData;
+	katzData *hostKatzData, *deviceKatzData;
+
 private:
 	cusLoadBalance* cusLB;
 	bool isStatic;

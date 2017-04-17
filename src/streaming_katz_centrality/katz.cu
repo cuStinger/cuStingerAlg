@@ -22,83 +22,61 @@ using namespace mgpu;
 
 namespace cuStingerAlgs {
 
-void katzCentralityStreaming::setInitParameters(length_t K_,length_t maxDegree_, length_t maxIteration_){
-	hostKatzData.K=K_;
-	hostKatzData.maxDegree=maxDegree_;
-	hostKatzData.maxIteration=maxIteration_;
-	hostKatzData.alpha = 1.0/((double)hostKatzData.maxDegree+1.0);
-
-	if(maxIteration_==0){
-		cout << "Number of max iterations should be greater than zero" << endl;
-		return;
-	}
+void katzCentralityStreaming::setInitParameters(length_t maxIteration_, length_t K_,length_t maxDegree_){
+	// setInitParameters(maxIteration_,maxDegree_,K_,false);
+	katzCentrality::setInitParameters(maxIteration_,maxDegree_,K_,false);
 }
 
 
 void katzCentralityStreaming::Init(cuStinger& custing){
+	// kcStatic.Init(custing);
+	katzCentrality::Init(custing);
+	// copyArrayHostToHost(&katzCentrality::hostKatzData,&hostKatzData, 1, sizeof(katzData));
+	// copyArrayDeviceToDevice(katzCentrality::deviceKatzData,, deviceKatzData, sizeof(katzData));
+	katzDataStreaming* replaceStaticHost = new katzDataStreaming();
+	
+	copyArrayHostToHost(katzCentrality::hostKatzData,replaceStaticHost, 1, sizeof(katzData));
+	delete katzCentrality::hostKatzData;
 
-	hostKatzData.newPathsCurr = (ulong_t*) allocDeviceArray(custing.nv+1, sizeof(ulong_t));
-	hostKatzData.newPathsPrev = (ulong_t*) allocDeviceArray(custing.nv+1, sizeof(ulong_t));
+	katzCentrality::hostKatzData = replaceStaticHost;
+	katzDataStreaming* replaceStaticDevice = (katzDataStreaming*)allocDeviceArray(1, sizeof(katzDataStreaming));
+	copyArrayDeviceToDevice(katzCentrality::deviceKatzData,replaceStaticDevice, 1, sizeof(katzData));
+	freeDeviceArray(katzCentrality::deviceKatzData);	
+	katzCentrality::deviceKatzData = replaceStaticDevice;
 
-	hostKatzData.KC         = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
-	hostKatzData.nPaths = (ulong_t**) allocDeviceArray(hostKatzData.maxIteration, sizeof(ulong_t*));
-	hostKatzData.nPathsData = (ulong_t*) allocDeviceArray((custing.nv+1)*hostKatzData.maxIteration, sizeof(ulong_t));
-	hostKatzData.alphaI         = (double*) allocDeviceArray(custing.nv+1, sizeof(double));
 
-	double* hAlphiI = (double*)allocHostArray(hostKatzData.maxIteration, sizeof(double));
-	ulong_t** hPathsPtr = (ulong_t**)allocHostArray(hostKatzData.maxIteration, sizeof(ulong_t*));
-	hAlphiI[0]=hostKatzData.alpha;
-	hPathsPtr[0] = hostKatzData.nPathsData;
+	// deviceKatzData = (katzDataStreaming*)allocDeviceArray(1, sizeof(katzDataStreaming));
+	// hostKatzData.newPathsCurr = (ulong_t*) allocDeviceArray((hostKatzData.nv), sizeof(ulong_t));
+	// hostKatzData.newPathsPrev = (ulong_t*) allocDeviceArray((hostKatzData.nv), sizeof(ulong_t));
 
-	for(int i=1; i< hostKatzData.maxIteration; i++){
-		hAlphiI[i]=hAlphiI[i-1]*hostKatzData.alpha;
-		hPathsPtr[i] = (hostKatzData.nPathsData+(custing.nv+1)*i);
-	}
-	copyArrayHostToDevice(hAlphiI,hostKatzData.alphaI,hostKatzData.maxIteration,sizeof(double));
-	copyArrayHostToDevice(hPathsPtr,hostKatzData.nPaths,hostKatzData.maxIteration,sizeof(double));
-
-	freeHostArray(hAlphiI);
-	freeHostArray(hPathsPtr);
-
-	deviceKatzData = (katzDataStreaming*)allocDeviceArray(1, sizeof(katzDataStreaming));
 
 	cusLB = new cusLoadBalance(custing);
 
-	SyncDeviceWithHost();
-	Reset();
-}
+	// SyncDeviceWithHost();
 
-void katzCentralityStreaming::Reset(){
-	hostKatzData.iteration = 1;
 
-	SyncDeviceWithHost();
-	copyArrayHostToDevice(&hostKatzData,deviceKatzData,1, sizeof(katzDataStreaming));
 }
 
 
+void katzCentralityStreaming::runStatic(cuStinger& custing){
+	Run(custing);
+	katzCentrality::Run(custing);
+}
 
 void katzCentralityStreaming::Release(){
-	// free(cusLB);
 	delete cusLB;
-	freeDeviceArray(deviceKatzData);
+	// freeDeviceArray(deviceKatzData);
 
-	freeDeviceArray(hostKatzData.newPathsCurr);
-	freeDeviceArray(hostKatzData.newPathsPrev);
-
-	freeDeviceArray(hostKatzData.nPaths);
-	freeDeviceArray(hostKatzData.nPathsData);
-	// freeDeviceArray(hostKatzData.vertexArray);
-	freeDeviceArray(hostKatzData.KC);
-	freeDeviceArray(hostKatzData.alphaI);
-
-
-
+	// freeDeviceArray(hostKatzData.newPathsCurr);
+	// freeDeviceArray(hostKatzData.newPathsPrev);
+	// kcStatic.Release();
+	katzCentrality::Release();
 }
 
 
 length_t katzCentralityStreaming::getIterationCount(){
-	SyncHostWithDevice();
-	return hostKatzData.iteration;
+	// SyncHostWithDevice();
+	// return hostKatzData.iteration;
 }
 
 

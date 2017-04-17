@@ -91,13 +91,11 @@ int main(const int argc, char *argv[]){
 			maxLen=off[v+1]-off[v];
 		}
 	}
-
 	for (int r=0; r<1; r++){
 		katzCentrality kc;
-		kc.setInitParameters(20,true);
+		kc.setInitParameters(20,100,maxLen,true);
 		kc.Init(custing);
 		kc.Reset();
-		kc.setInputParameters(100,maxLen);
 		start_clock(ce_start, ce_stop);
 		kc.Run(custing);
 		totalTime = end_clock(ce_start, ce_stop);
@@ -106,14 +104,12 @@ int main(const int argc, char *argv[]){
 		cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
 		kc.Release();
 	}
-
 	for (int r=0; r<1; r++){
 
 		katzCentrality kc2;
-		kc2.setInitParameters(20,false);
+		kc2.setInitParameters(20,100,maxLen,false);
 		kc2.Init(custing);
 		kc2.Reset();
-		kc2.setInputParameters(100,maxLen);
 		start_clock(ce_start, ce_stop);
 		kc2.Run(custing);
 		totalTime = end_clock(ce_start, ce_stop);
@@ -123,16 +119,18 @@ int main(const int argc, char *argv[]){
 
 		kc2.Release();
 	}
-	// katzCentralityStreaming kcs;
 
-	// kcs.setInitParameters(100,maxLen,20);
-	// kcs.Init(custing);
-	// kcs.Reset();
-	// start_clock(ce_start, ce_stop);
-	// // kcs.Run(custing);
-	// totalTime = end_clock(ce_start, ce_stop);
+	// return;
+
+	katzCentralityStreaming kcs;
+
+	kcs.setInitParameters(100,maxLen,20);
+	kcs.Init(custing);
+	start_clock(ce_start, ce_stop);
+	// kcs.runStatic(custing);
+	totalTime = end_clock(ce_start, ce_stop);
 	// // cout << "The number of iterations      : " << kc.getIterationCount() << endl;
-	// // cout << "Total time for KC             : " << totalTime << endl; 
+	cout << "Total time for KC             : " << totalTime << endl; 
 	// // cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
 
 	// kcs.Release();
