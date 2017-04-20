@@ -77,16 +77,13 @@ void katzCentrality::Init(cuStinger& custing){
 	hostKatzData->upperBound = (double*) allocDeviceArray(hostKatzData->nv, sizeof(double));
 
 	deviceKatzData = NULL;
-	printf("Allocated on device is successful %p\n", deviceKatzData);
 
 	deviceKatzData = (katzData*)allocDeviceArray(1, sizeof(katzData));
 	cusLB = new cusLoadBalance(custing);
-	printf("Allocated on device is successful %p\n", deviceKatzData);
 
-	katzCentrality::SyncDeviceWithHost();
-	printf("After sync\n"); fflush(stdout);
+	SyncDeviceWithHost();
 	Reset();
-	printf("After reset\n"); fflush(stdout);
+	allVinG_TraverseVertices<katzCentralityOperator::printPointers>(custing,deviceKatzData);
 
 }
 
@@ -130,6 +127,8 @@ void katzCentrality::Release(){
 
 void katzCentrality::Run(cuStinger& custing){
 
+
+
 	allVinG_TraverseVertices<katzCentralityOperator::init>(custing,deviceKatzData);
 	// allVinG_TraverseVertices<katzCentralityOperator::printKID>(custing,deviceKatzData);
 	// printf("\n");
@@ -155,7 +154,6 @@ void katzCentrality::Run(cuStinger& custing){
 		hostKatzData->iteration++;
 
 		if(isStatic){
-			// printf("^\n");
 			// Swapping pointers.
 			ulong_t* temp = hostKatzData->nPathsCurr; hostKatzData->nPathsCurr=hostKatzData->nPathsPrev; hostKatzData->nPathsPrev=temp;	
 		// printf("prev  - %p\n ", hostKatzData->nPathsPrev);
@@ -206,6 +204,7 @@ void katzCentrality::Run(cuStinger& custing){
 		SyncHostWithDevice();
 		cout << hostKatzData->nActive << endl;
 	}
+	cout << "@@ " << hostKatzData->iteration << " @@" << endl;
 }
 
 length_t katzCentrality::getIterationCount(){

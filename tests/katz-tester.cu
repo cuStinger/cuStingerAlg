@@ -28,6 +28,14 @@ using namespace cuStingerAlgs;
     } while (0)
 
 
+void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst){
+	for(int32_t e=0; e<numEdges; e++){
+		edgeSrc[e] = rand()%nv;
+		edgeDst[e] = rand()%nv;
+	}
+}
+
+
 
 int main(const int argc, char *argv[]){
 	int device=0;
@@ -120,28 +128,46 @@ int main(const int argc, char *argv[]){
 		kc2.Release();
 	}
 
-	// return;
-
 	katzCentralityStreaming kcs;
 
-	kcs.setInitParameters(100,maxLen,20);
+	kcs.setInitParameters(20,100,maxLen);
 	kcs.Init(custing);
 	start_clock(ce_start, ce_stop);
-	// kcs.runStatic(custing);
+	kcs.runStatic(custing);
 	totalTime = end_clock(ce_start, ce_stop);
-	// // cout << "The number of iterations      : " << kc.getIterationCount() << endl;
+	cout << "The number of iterations      : " << kcs.getIterationCount() << endl;
 	cout << "Total time for KC             : " << totalTime << endl; 
-	// // cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
+	cout << "Average time per iteartion    : " << totalTime/(float)kcs.getIterationCount() << endl; 
 
-	// kcs.Release();
+	int numBatchEdges=5000;
+
+	BatchUpdateData bud(numBatchEdges,true);
+
+	generateEdgeUpdates(nv, numBatchEdges, bud.getSrc(),bud.getDst());
+
+	// BatchUpdate bu(bud);
+	BatchUpdate* bu = new BatchUpdate(bud);
+
+	start_clock(ce_start, ce_stop);
+	kcs.insertedBatchUpdate(custing,*bu);
+	totalTime = end_clock(ce_start, ce_stop);
 
 
+	delete bu;
 
+	// cout << "The number of iterations      : " << kcs.getIterationCount() << endl;
+	cout << "Total time for KC streaming   : " << totalTime << endl; 
+	// cout << "Average time per iteartion    : " << totalTime/(float)kcs.getIterationCount() << endl; 
+
+
+	kcs.Release();
 
 	custing.freecuStinger();
 
 	free(off);
 	free(adj);
+
+	cudaDeviceReset();
     return 0;	
 }
 

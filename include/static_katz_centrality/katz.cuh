@@ -15,7 +15,6 @@ public:
 	ulong_t*   nPathsData;
 	ulong_t**  nPaths;     // Will be used for dynamic graph algorithm which requires storing paths of all iterations.
 
-
 	ulong_t*   nPathsCurr;
 	ulong_t*   nPathsPrev;
 
@@ -26,7 +25,7 @@ public:
 
 	vertexId_t*     vertexArray; // Sorting
 
-	vertexQueue queue; // Stores all the active vertices
+	// vertexQueue queue; // Stores all the active vertices
 	double alpha;
 	double alphaI; // Alpha to the power of I  (being the iteration)
 
@@ -60,6 +59,11 @@ public:
 	}
 
 	length_t getIterationCount();
+
+	const katzData* getHostKatzData(){return hostKatzData;}
+	const katzData* getDeviceKatzData(){return deviceKatzData;}
+
+
 protected:
 	// katzData hostKatzData, *deviceKatzData;
 	katzData *hostKatzData, *deviceKatzData;
@@ -127,6 +131,15 @@ static __device__ void countActive(cuStinger* custing,vertexId_t src, void* meta
 		atomicAdd(&(kd -> nActive),1);
 	}
 }
+
+
+static __device__ void printPointers(cuStinger* custing,vertexId_t src, void* metadata){
+	katzData* kd = (katzData*)metadata;
+	if(threadIdx.x==0 && blockIdx.x==0 && src==0)
+		printf("\n# %p %p %p %p %p %p #\n",kd->nPathsPrev, kd->nPathsCurr, kd->KC,kd->lowerBound,kd->lowerBoundSort,kd->upperBound);
+
+}
+
 
 
 };
