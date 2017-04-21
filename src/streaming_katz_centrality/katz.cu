@@ -44,9 +44,9 @@ void katzCentralityStreaming::Init(cuStinger& custing){
 	cusLB = new cusLoadBalance(custing.nv+1);
 
 	hostKatzData.activeQueue.Init(custing.nv+1);
-	hostKatzData.nextIterQueue.Init(custing.nv+1);
+	// hostKatzData.nextIterQueue.Init(custing.nv+1);
 	hostKatzData.activeQueue.resetQueue();
-	hostKatzData.nextIterQueue.resetQueue();
+	// hostKatzData.nextIterQueue.resetQueue();
 
 	SyncDeviceWithHost();
 
@@ -60,6 +60,8 @@ void katzCentralityStreaming::runStatic(cuStinger& custing){
 	kcStatic.Run(custing);
 	copyArrayHostToHost((void*)kcStatic.getHostKatzData(),&hostKatzData, 1, sizeof(katzData));
 	copyArrayDeviceToDevice((void*)kcStatic.getDeviceKatzData(),deviceKatzData, 1, sizeof(katzData));
+	hostKatzData.iterationStatic = hostKatzData.iteration;
+	SyncDeviceWithHost();
 
 }
 
@@ -67,7 +69,7 @@ void katzCentralityStreaming::Release(){
 	delete cusLB;
 
 	hostKatzData.activeQueue.freeQueue();
-	hostKatzData.nextIterQueue.freeQueue();
+	// hostKatzData.nextIterQueue.freeQueue();
 	freeDeviceArray(hostKatzData.newPathsCurr);
 	freeDeviceArray(hostKatzData.newPathsPrev);
 	freeDeviceArray(hostKatzData.active);
@@ -94,50 +96,35 @@ void katzCentralityStreaming::insertedBatchUpdate(cuStinger& custing,BatchUpdate
 	hostKatzData.iteration = 2;
 	
 	cout << "The number of queued elements is: " << hostKatzData.activeQueue.getQueueEnd() << endl;
-// return;
-	hostKatzData.nActive = 0;
-	length_t prevActive=0;
-	while(hostKatzData.iteration < hostKatzData.maxIteration){
+	hostKatzData.nActive = hostKatzData.activeQueue.getQueueEnd();
+
+	while(hostKatzData.iteration < hostKatzData.maxIteration && hostKatzData.iteration < hostKatzData.iterationStatic){
 
 		hostKatzData.alphaI = pow(hostKatzData.alpha,hostKatzData.iteration);
-		allVinA_TraverseVertices<katzCentralityStreamingOperator::initUpdateNewPaths>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.activeQueue.getQueueEnd());
+		allVinA_TraverseVertices<katzCentralityStreamingOperator::initActiveNewPaths>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
 
-		hostKatzData.nextIterQueue.resetQueue();
 		SyncDeviceWithHost();
-
-		// cout << "BEFORE - The number of queued elements is: " << hostKatzData.iteration  << "   " << hostKatzData.activeQueue.getQueueEnd() << "   " << hostKatzData.nextIterQueue.getQueueEnd() << endl;
-
 
 		allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::findNextActive>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);	
 		allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::updateActiveNewPaths>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);
 
-
 		allEinA_TraverseEdges<katzCentralityStreamingOperator::updateNewPathsBatch>(custing, deviceKatzData,bu);
-		SyncHostWithDevice();
-
-		allVinA_TraverseVertices<katzCentralityStreamingOperator::enqueueNextToActive>(custing, deviceKatzData, hostKatzData.nextIterQueue.getQueue(), hostKatzData.nextIterQueue.getQueueEnd());
-
 
 		SyncHostWithDevice();
-		cout << "AFTER  - The number of queued elements is: " << hostKatzData.iteration  << "   " << hostKatzData.activeQueue.getQueueEnd() << "   " << hostKatzData.nextIterQueue.getQueueEnd() << endl;
+		hostKatzData.nActive = hostKatzData.activeQueue.getQueueEnd();
 
-		// allVinA_TraverseVertices<katzCentralityStreamingOperator::updateKC>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.activeQueue.getQueueEnd());
+		allVinA_TraverseVertices<katzCentralityStreamingOperator::updatePrevWithCurr>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
 
-
-	// cout << "The number of queued elements is: " << hostKatzData.activeQueue.getQueueEnd() << endl;
-
-			// allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::updateActiveNewPaths>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);	
-
-		// allVinA_TraverseEdges_LB<katzCentralityOperator::updatePathCount>(custing,deviceKatzData,*cusLB);
-
+		SyncHostWithDevice();
+		cout << "AFTER  - The number of queued elements is: " << hostKatzData.iteration  << "   " << hostKatzData.activeQueue.getQueueEnd() << endl;
 
 		SyncHostWithDevice();
 		hostKatzData.iteration++;
-		ulong_t* temp = hostKatzData.newPathsCurr; hostKatzData.newPathsCurr=hostKatzData.newPathsPrev; hostKatzData.newPathsPrev=temp;	
 
 		SyncDeviceWithHost();
-
 	}
+	allVinA_TraverseVertices<katzCentralityStreamingOperator::updateLastIteration>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
+
 
 }
 

@@ -15,9 +15,11 @@ public:
 	ulong_t*    newPathsCurr;
 	ulong_t*    newPathsPrev;
 	vertexQueue activeQueue; // Stores all the active vertices
-	vertexQueue nextIterQueue; // Stores all the active vertices
+	// vertexQueue nextIterQueue; // Stores all the active vertices
 
 	int*		active;
+	length_t iterationStatic;
+
 
 };
 
@@ -43,6 +45,10 @@ public:
 	}
 
 	length_t getIterationCount();
+
+	virtual void copyKCToHost(double* hostArray){
+		kcStatic.copyKCToHost(hostArray);
+	}
 
 
 protected:
@@ -80,7 +86,7 @@ static __device__ void initStreaming(cuStinger* custing,vertexId_t src, void* me
 static __device__ void setupInsertions(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 	atomicAdd(kd->KC+src, kd->alpha);
-	atomicAdd(kd->newPathsCurr+src, 1);
+	atomicAdd(kd->newPathsPrev+src, 1);
 
 	// vertexId_t prev = atomicCAS(kd->active+src,0,1);
 	vertexId_t prev = atomicCAS(kd->active+src,0,kd->iteration);
@@ -91,7 +97,7 @@ static __device__ void setupInsertions(cuStinger* custing,vertexId_t src, vertex
 
 }
 
-static __device__ void initUpdateNewPaths(cuStinger* custing,vertexId_t src, void* metadata){
+static __device__ void initActiveNewPaths(cuStinger* custing,vertexId_t src, void* metadata){
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 	kd->newPathsCurr[src]= kd->nPaths[kd->iteration-1][src];
 }
@@ -102,7 +108,7 @@ static __device__ void findNextActive(cuStinger* custing,vertexId_t src, vertexI
 	// vertexId_t prev = atomicCAS(kd->active+dst,0,1);
 	vertexId_t prev = atomicCAS(kd->active+dst,0,kd->iteration);
 	if(prev==0){
-		kd->nextIterQueue.enqueue(dst);
+		kd->activeQueue.enqueue(dst);
 		kd->newPathsCurr[dst]= kd->nPaths[kd->iteration-1][dst];
 	}
 }
@@ -111,72 +117,35 @@ static __device__ void updateActiveNewPaths(cuStinger* custing,vertexId_t src, v
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 	ulong_t valToAdd = kd->newPathsPrev[src] - kd->nPaths[kd->iteration-2][src];
 	atomicAdd(kd->newPathsCurr+dst, valToAdd);
-
 }
-
-
-static __device__ void enqueueNextToActive(cuStinger* custing,vertexId_t src, void* metadata){
-	katzDataStreaming* kd = (katzDataStreaming*)metadata;
-	kd->activeQueue.enqueue(src);
-
-
-	// kd->newPathsCurr[src]= kd->nPaths[kd->iteration-1][src];
-}
-
 
 static __device__ void updateNewPathsBatch(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
-	atomicAdd(kd->newPathsCurr+src, kd->nPaths[kd->iteration-2][dst]);
+	ulong_t valToAdd = kd->nPaths[kd->iteration-2][dst];
+	atomicAdd(kd->newPathsCurr+src, valToAdd);
 
 }
 
 
-// // Used at the very beginning
-// static __device__ void init(cuStinger* custing,vertexId_t src, void* metadata){
-// 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
-// 	kd->nPathsPrev[src]=1;
-// 	kd->nPathsCurr[src]=0;
-// 	kd->KC[src]=0.0;
-// }
+static __device__ void updatePrevWithCurr(cuStinger* custing,vertexId_t src, void* metadata){
+	katzDataStreaming* kd = (katzDataStreaming*)metadata;
+	
+	kd->KC[src] += kd->alphaI*kd->newPathsCurr[src] - kd->alphaI*kd->nPaths[kd->iteration-1][src];
+	if(kd->active[src] < kd->iteration){
+		kd->nPaths[kd->iteration-2][src] = kd->newPathsPrev[src];
+	}
+	kd->newPathsPrev[src] = kd->newPathsCurr[src];
+}
 
-// // Used every iteration
-// static __device__ void initNumPathsPerIteration(cuStinger* custing,vertexId_t src, void* metadata){
-// 	katzData* kd = (katzData*)metadata;
-// 	kd->nPathsCurr[src]=0;
-// }
+static __device__ void updateLastIteration(cuStinger* custing,vertexId_t src, void* metadata){
+	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 
-
-// static __device__ void updatePathCount(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
-// 	katzData* kd = (katzData*)metadata;
-// 	atomicAdd(kd->nPathsCurr+src, kd->nPathsPrev[dst]);
-// }
+	if(kd->active[src] < kd->iteration){
+		kd->nPaths[kd->iteration-2][src] = kd->newPathsPrev[src];
+	}
+}
 
 
-// static __device__ void updateKatzAndBounds(cuStinger* custing,vertexId_t src, void* metadata){
-// 	katzData* kd = (katzData*)metadata;
-// 	kd->KC[src]=kd->KC[src] + kd->alphaI * (double)kd->nPathsCurr[src];
-// 	kd->lowerBound[src]=kd->KC[src] + kd->lowerBoundConst * (double)kd->nPathsCurr[src];
-// 	kd->upperBound[src]=kd->KC[src] + kd->upperBoundConst * (double)kd->nPathsCurr[src];   
-// 	kd->lowerBoundSort[src]=kd->lowerBound[src];
-// 	kd->vertexArray[src]=src;
-// }
-
-// static __device__ void printKID(cuStinger* custing,vertexId_t src, void* metadata){
-
-// 	katzData* kd = (katzData*)metadata;
-// 	if(kd->vertexArray[src]==kd->K)
-// 		printf("%d\n",src);
-  
-
-// }
-
-// static __device__ void countActive(cuStinger* custing,vertexId_t src, void* metadata){
-// 	katzData* kd = (katzData*)metadata;
-// 		if (kd->upperBound[src] > kd->lowerBound[kd->vertexArray[kd->K-1]]) {
-// 		atomicAdd(&(kd -> nActive),1);
-// 		// kd -> nActive ++; // TODO how can i do this as an atomic instruction?
-// 	}
-// }
 
 
 };

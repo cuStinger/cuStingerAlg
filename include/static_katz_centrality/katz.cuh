@@ -63,6 +63,9 @@ public:
 	const katzData* getHostKatzData(){return hostKatzData;}
 	const katzData* getDeviceKatzData(){return deviceKatzData;}
 
+	virtual void copyKCToHost(double* hostArray){
+		copyArrayDeviceToHost(hostKatzData->KC,hostArray, hostKatzData->nv, sizeof(double));
+	}
 
 protected:
 	// katzData hostKatzData, *deviceKatzData;

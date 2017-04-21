@@ -83,7 +83,7 @@ void katzCentrality::Init(cuStinger& custing){
 
 	SyncDeviceWithHost();
 	Reset();
-	allVinG_TraverseVertices<katzCentralityOperator::printPointers>(custing,deviceKatzData);
+	// allVinG_TraverseVertices<katzCentralityOperator::printPointers>(custing,deviceKatzData);
 
 }
 

@@ -99,34 +99,17 @@ int main(const int argc, char *argv[]){
 			maxLen=off[v+1]-off[v];
 		}
 	}
-	for (int r=0; r<1; r++){
-		katzCentrality kc;
-		kc.setInitParameters(20,100,maxLen,true);
-		kc.Init(custing);
-		kc.Reset();
-		start_clock(ce_start, ce_stop);
-		kc.Run(custing);
-		totalTime = end_clock(ce_start, ce_stop);
-		cout << "The number of iterations      : " << kc.getIterationCount() << endl;
-		cout << "Total time for KC             : " << totalTime << endl; 
-		cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
-		kc.Release();
-	}
-	for (int r=0; r<1; r++){
-
-		katzCentrality kc2;
-		kc2.setInitParameters(20,100,maxLen,false);
-		kc2.Init(custing);
-		kc2.Reset();
-		start_clock(ce_start, ce_stop);
-		kc2.Run(custing);
-		totalTime = end_clock(ce_start, ce_stop);
-		cout << "The number of iterations      : " << kc2.getIterationCount() << endl;
-		cout << "Total time for KC             : " << totalTime << endl; 
-		cout << "Average time per iteartion    : " << totalTime/(float)kc2.getIterationCount() << endl; 
-
-		kc2.Release();
-	}
+	katzCentrality kc;
+	kc.setInitParameters(20,100,maxLen,true);
+	kc.Init(custing);
+	kc.Reset();
+	start_clock(ce_start, ce_stop);
+	kc.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
+	cout << "The number of iterations      : " << kc.getIterationCount() << endl;
+	cout << "Total time for KC             : " << totalTime << endl; 
+	cout << "Average time per iteartion    : " << totalTime/(float)kc.getIterationCount() << endl; 
+	kc.Release();
 
 	katzCentralityStreaming kcs;
 
@@ -139,7 +122,7 @@ int main(const int argc, char *argv[]){
 	cout << "Total time for KC             : " << totalTime << endl; 
 	cout << "Average time per iteartion    : " << totalTime/(float)kcs.getIterationCount() << endl; 
 
-	int numBatchEdges=5000;
+	int numBatchEdges=1;
 
 	BatchUpdateData bud(numBatchEdges,true);
 
@@ -153,13 +136,42 @@ int main(const int argc, char *argv[]){
 	totalTime = end_clock(ce_start, ce_stop);
 
 
-	delete bu;
-
 	// cout << "The number of iterations      : " << kcs.getIterationCount() << endl;
 	cout << "Total time for KC streaming   : " << totalTime << endl; 
 	// cout << "Average time per iteartion    : " << totalTime/(float)kcs.getIterationCount() << endl; 
 
 
+	katzCentrality kcPostUpdate;
+	kcPostUpdate.setInitParameters(20,100,maxLen,true);
+	kcPostUpdate.Init(custing);
+	kcPostUpdate.Reset();
+	start_clock(ce_start, ce_stop);
+	kcPostUpdate.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
+	cout << "The number of iterations      : " << kcPostUpdate.getIterationCount() << endl;
+	cout << "Total time for KC             : " << totalTime << endl; 
+	cout << "Average time per iteartion    : " << totalTime/(float)kcPostUpdate.getIterationCount() << endl; 
+
+
+	double* kcScoresStreaming  = (double*) allocHostArray(custing.nv, sizeof(double));
+	double* kcScoresPostUpdate = (double*) allocHostArray(custing.nv, sizeof(double));
+
+	kcs.copyKCToHost(kcScoresStreaming);
+	kcPostUpdate.copyKCToHost(kcScoresPostUpdate);
+
+	for(int i=0; i < 100; i++){
+		// printf("%1.11lf, ", kcScoresStreaming[i]-kcScoresPostUpdate[i]);
+	}
+	printf("\n");
+
+	double sum=0.0;
+	for(int i=0; i < custing.nv; i++){
+		sum += fabs(kcScoresStreaming[i]-kcScoresPostUpdate[i]);
+	}
+	printf("Sum of difference %4.11lf \n", sum);
+
+
+	kcPostUpdate.Release();
 	kcs.Release();
 
 	custing.freecuStinger();
