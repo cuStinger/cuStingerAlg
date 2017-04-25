@@ -59,6 +59,7 @@ int main(const int argc, char *argv[]){
 	}
 	else if(isMarket){
 		readGraphMatrixMarket(argv[1],&off,&adj,&nv,&ne,(isRmat)?false:true);
+		// readGraphMatrixMarket(argv[1],&off,&adj,&nv,&ne,false);
 	}
 	else{ 
 		cout << "Unknown graph type" << endl;
@@ -88,38 +89,38 @@ int main(const int argc, char *argv[]){
 	
 	float totalTime;
 
-	ccBaseline scc;
-	scc.Init(custing);
-	scc.Reset();
-	start_clock(ce_start, ce_stop);
-//	scc.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
-	// cout << "The number of iterations           : " << scc.GetIterationCount() << endl;
-	// cout << "The number of connected-compoents  : " << scc.CountConnectComponents(custing) << endl;
-	// cout << "Total time for connected-compoents : " << totalTime << endl; 
-	scc.Release();
+// 	ccBaseline scc;
+// 	scc.Init(custing);
+// 	scc.Reset();
+// 	start_clock(ce_start, ce_stop);
+// //	scc.Run(custing);
+// 	totalTime = end_clock(ce_start, ce_stop);
+// 	// cout << "The number of iterations           : " << scc.GetIterationCount() << endl;
+// 	// cout << "The number of connected-compoents  : " << scc.CountConnectComponents(custing) << endl;
+// 	// cout << "Total time for connected-compoents : " << totalTime << endl; 
+// 	scc.Release();
 
-	ccConcurrent scc2;
-	scc2.Init(custing);
-	scc2.Reset();
-	start_clock(ce_start, ce_stop);
-    // scc2.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
-	// cout << "The number of iterations           : " << scc2.GetIterationCount() << endl;
-	// cout << "The number of connected-compoents  : " << scc2.CountConnectComponents(custing) << endl;
-	// cout << "Total time for connected-compoents : " << totalTime << endl; 
-	scc2.Release();
+	// ccConcurrent scc2;
+	// scc2.Init(custing);
+	// scc2.Reset();
+	// start_clock(ce_start, ce_stop);
+ //    // scc2.Run(custing);
+	// totalTime = end_clock(ce_start, ce_stop);
+	// // cout << "The number of iterations           : " << scc2.GetIterationCount() << endl;
+	// // cout << "The number of connected-compoents  : " << scc2.CountConnectComponents(custing) << endl;
+	// // cout << "Total time for connected-compoents : " << totalTime << endl; 
+	// scc2.Release();
 
 
 	ccConcurrentLB scc3;
 	scc3.Init(custing);
 	scc3.Reset();
 	start_clock(ce_start, ce_stop);
-	// scc3.Run(custing);
+	scc3.Run(custing);
 	totalTime = end_clock(ce_start, ce_stop);
-	// cout << "The number of iterations           : " << scc3.GetIterationCount() << endl;
-	// cout << "The number of connected-compoents  : " << scc3.CountConnectComponents(custing) << endl;
-	// cout << "Total time for connected-compoents : " << totalTime << endl; 
+	cout << "The number of iterations           : " << scc3.GetIterationCount() << endl;
+	cout << "The number of connected-compoents  : " << scc3.CountConnectComponents(custing) << endl;
+	cout << "Total time for connected-compoents : " << totalTime << endl; 
 	scc3.Release();
 
 
@@ -146,47 +147,47 @@ int main(const int argc, char *argv[]){
 	}
 	// cout << "Largest vertex is: " << maxV << "   With the length of :" << maxLen << endl;
 
-	// bfsTD bfs;
-	// bfs.Init(custing);
-	// bfs.Reset();
-	// bfs.setInputParameters(maxV);
+	bfsTD bfs;
+	bfs.Init(custing);
+	bfs.Reset();
+	bfs.setInputParameters(maxV);
+	start_clock(ce_start, ce_stop);
+	bfs.Run(custing);
+	totalTime = end_clock(ce_start, ce_stop);
+	cout << "The max vertex is             : " << maxV << endl;
+	cout << "The number of levels          : " << bfs.getLevels() << endl;
+	cout << "The number of elements found  : " << bfs.getElementsFound() << endl;
+	cout << "Total time for BFS - Top-Down : " << totalTime << endl; 
+
+	bfs.Release();
+
+	// bfsBU bfsbu;
+	// bfsbu.Init(custing);
+	// bfsbu.Reset();
+	// bfsbu.setInputParameters(maxV);
 	// start_clock(ce_start, ce_stop);
-	// bfs.Run(custing);
+	// bfsbu.Run(custing);
 	// totalTime = end_clock(ce_start, ce_stop);
 
-	// cout << "The number of levels          : " << bfs.getLevels() << endl;
-	// cout << "The number of elements found  : " << bfs.getElementsFound() << endl;
-	// cout << "Total time for BFS - Top-Down : " << totalTime << endl; 
+	// cout << "The number of levels          : " << bfsbu.getLevels() << endl;
+	// cout << "The number of elements found  : " << bfsbu.getElementsFound(custing) << endl;
+	// cout << "Total time for BFS - Bottom-up: " << totalTime << endl; 
 
-	// bfs.Release();
+	// bfsbu.Release();
 
-	bfsBU bfsbu;
-	bfsbu.Init(custing);
-	bfsbu.Reset();
-	bfsbu.setInputParameters(maxV);
-	start_clock(ce_start, ce_stop);
-	bfsbu.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
+	// bfsHybrid bfsHy;
+	// bfsHy.Init(custing);
+	// bfsHy.Reset();
+	// bfsHy.setInputParameters(maxV);
+	// start_clock(ce_start, ce_stop);
+	// bfsHy.Run(custing);
+	// totalTime = end_clock(ce_start, ce_stop);
 
-	cout << "The number of levels          : " << bfsbu.getLevels() << endl;
-	cout << "The number of elements found  : " << bfsbu.getElementsFound(custing) << endl;
-	cout << "Total time for BFS - Bottom-up: " << totalTime << endl; 
+	// cout << "The number of levels          : " << bfsHy.getLevels() << endl;
+	// cout << "The number of elements found  : " << bfsHy.getElementsFound(custing) << endl;
+	// cout << "Total time for BFS - Hybrid   : " << totalTime << endl; 
 
-	bfsbu.Release();
-
-	bfsHybrid bfsHy;
-	bfsHy.Init(custing);
-	bfsHy.Reset();
-	bfsHy.setInputParameters(maxV);
-	start_clock(ce_start, ce_stop);
-	bfsHy.Run(custing);
-	totalTime = end_clock(ce_start, ce_stop);
-
-	cout << "The number of levels          : " << bfsHy.getLevels() << endl;
-	cout << "The number of elements found  : " << bfsHy.getElementsFound(custing) << endl;
-	cout << "Total time for BFS - Hybrid   : " << totalTime << endl; 
-
-	bfsHy.Release();
+	// bfsHy.Release();
 
 
 	StaticPageRank pr;

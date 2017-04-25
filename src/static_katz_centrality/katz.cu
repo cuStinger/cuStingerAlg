@@ -41,7 +41,7 @@ void katzCentrality::setInitParameters(length_t maxIteration_, length_t K_,lengt
 		return;
 	}
 
-	printf("Pointer is %p\n", hostKatzData);
+	// printf("Pointer is %p\n", hostKatzData);
 }
 
 
@@ -56,6 +56,9 @@ void katzCentrality::Init(cuStinger& custing){
 		hostKatzData->nPathsCurr = hostKatzData->nPathsData+(hostKatzData->nv);
 	}
 	else{
+		cout << "Static is " << isStatic << endl;
+
+
 		hostKatzData->nPathsData = (ulong_t*) allocDeviceArray((hostKatzData->nv)*hostKatzData->maxIteration, sizeof(ulong_t));
 		hostKatzData->nPaths = (ulong_t**) allocDeviceArray(hostKatzData->maxIteration, sizeof(ulong_t*));
 
@@ -202,9 +205,10 @@ void katzCentrality::Run(cuStinger& custing){
 	freeHostArray(upperBound);
 */		
 		SyncHostWithDevice();
-		cout << hostKatzData->nActive << endl;
+		// cout << hostKatzData->nActive << endl;
 	}
-	cout << "@@ " << hostKatzData->iteration << " @@" << endl;
+	// cout << "@@ " << hostKatzData->iteration << " @@" << endl;
+	SyncHostWithDevice();
 }
 
 length_t katzCentrality::getIterationCount(){

@@ -67,6 +67,11 @@ public:
 		copyArrayDeviceToHost(hostKatzData->KC,hostArray, hostKatzData->nv, sizeof(double));
 	}
 
+	virtual void copynPathsToHost(ulong_t* hostArray){
+		copyArrayDeviceToHost(hostKatzData->nPathsData,hostArray, (hostKatzData->nv)*hostKatzData->maxIteration, sizeof(ulong_t));
+	}
+
+
 protected:
 	// katzData hostKatzData, *deviceKatzData;
 	katzData *hostKatzData, *deviceKatzData;
@@ -139,8 +144,7 @@ static __device__ void countActive(cuStinger* custing,vertexId_t src, void* meta
 static __device__ void printPointers(cuStinger* custing,vertexId_t src, void* metadata){
 	katzData* kd = (katzData*)metadata;
 	if(threadIdx.x==0 && blockIdx.x==0 && src==0)
-		printf("\n# %p %p %p %p %p %p #\n",kd->nPathsPrev, kd->nPathsCurr, kd->KC,kd->lowerBound,kd->lowerBoundSort,kd->upperBound);
-
+		printf("\n@ %p %p %p %p %p %p %p %p @\n",kd->nPathsData,kd->nPaths, kd->nPathsPrev, kd->nPathsCurr, kd->KC,kd->lowerBound,kd->lowerBoundSort,kd->upperBound);
 }
 
 
