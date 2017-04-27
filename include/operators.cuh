@@ -312,6 +312,41 @@ static void allVinA_TraverseEdges_LB(cuStinger& custing,void* metadata, cusLoadB
 
 
 
+template <cusSubKernelEdge cusSK>
+static __global__ void device_allEinA_TraverseEdges(cuStinger* custing,void* metadata, BatchUpdateData* bud, int32_t edgesPerThreadBlock){
+	length_t e_init=blockIdx.x*edgesPerThreadBlock+threadIdx.x;
+	length_t batchSize = *(bud->getBatchSize());
+	vertexId_t* d_updatesSrc    = bud->getSrc();
+	vertexId_t* d_updatesDst    = bud->getDst();
+
+	for (length_t e_hat=0; e_hat<edgesPerThreadBlock; e_hat+=blockDim.x){
+		length_t e=e_init+e_hat;
+		if(e>=batchSize){
+			break;
+		}
+		(cusSK)(custing,d_updatesSrc[e],d_updatesDst[e],metadata);
+	}
+}
+
+
+template <cusSubKernelEdge cusSK>
+static void allEinA_TraverseEdges(cuStinger& custing, void* metadata, BatchUpdate &bu){
+	length_t batchSize = *(bu.getHostBUD()->getBatchSize());
+	if(batchSize==0)
+			return;
+
+	dim3 numBlocks(1, 1); int32_t threads=32;
+	dim3 threadsPerBlock(threads, 1);
+	int32_t edgesPerThreadBlock=512;
+
+	numBlocks.x = ceil((float)batchSize/(float)edgesPerThreadBlock);
+	device_allEinA_TraverseEdges<cusSK><<<numBlocks, threadsPerBlock>>>(custing.devicePtr(), metadata, bu.getDeviceBUD()->devicePtr(), edgesPerThreadBlock);
+
+
+}
+
+
+
 }
 
 
