@@ -56,9 +56,6 @@ void katzCentrality::Init(cuStinger& custing){
 		hostKatzData->nPathsCurr = hostKatzData->nPathsData+(hostKatzData->nv);
 	}
 	else{
-		cout << "Static is " << isStatic << endl;
-
-
 		hostKatzData->nPathsData = (ulong_t*) allocDeviceArray((hostKatzData->nv)*hostKatzData->maxIteration, sizeof(ulong_t));
 		hostKatzData->nPaths = (ulong_t**) allocDeviceArray(hostKatzData->maxIteration, sizeof(ulong_t*));
 
@@ -86,8 +83,6 @@ void katzCentrality::Init(cuStinger& custing){
 
 	SyncDeviceWithHost();
 	Reset();
-	// allVinG_TraverseVertices<katzCentralityOperator::printPointers>(custing,deviceKatzData);
-
 }
 
 void katzCentrality::Reset(){
@@ -101,11 +96,8 @@ void katzCentrality::Reset(){
 		hostKatzData->nPathsPrev = hPathsPtr[0];
 		hostKatzData->nPathsCurr = hPathsPtr[1];
 	}
-
 	SyncDeviceWithHost();
 }
-
-
 
 void katzCentrality::Release(){
 	delete cusLB;
@@ -130,11 +122,7 @@ void katzCentrality::Release(){
 
 void katzCentrality::Run(cuStinger& custing){
 
-
-
 	allVinG_TraverseVertices<katzCentralityOperator::init>(custing,deviceKatzData);
-	// allVinG_TraverseVertices<katzCentralityOperator::printKID>(custing,deviceKatzData);
-	// printf("\n");
 	standard_context_t context(false);
 
 	hostKatzData->iteration = 1;
@@ -146,7 +134,6 @@ void katzCentrality::Run(cuStinger& custing){
 		hostKatzData->lowerBoundConst = pow(hostKatzData->alpha,hostKatzData->iteration+1)/((1.0-hostKatzData->alpha));
 		hostKatzData->upperBoundConst = pow(hostKatzData->alpha,hostKatzData->iteration+1)/((1.0-hostKatzData->alpha*(double)hostKatzData->maxDegree));
 
-		//cout << hostKatzData->iteration << " " << hostKatzData->alphaI << " " << hostKatzData->lowerBoundConst << " " << hostKatzData->upperBoundConst << endl;
 		SyncDeviceWithHost();
 
 		allVinG_TraverseVertices<katzCentralityOperator::initNumPathsPerIteration>(custing,deviceKatzData);
@@ -159,18 +146,10 @@ void katzCentrality::Run(cuStinger& custing){
 		if(isStatic){
 			// Swapping pointers.
 			ulong_t* temp = hostKatzData->nPathsCurr; hostKatzData->nPathsCurr=hostKatzData->nPathsPrev; hostKatzData->nPathsPrev=temp;	
-		// printf("prev  - %p\n ", hostKatzData->nPathsPrev);
-		// printf("curr  - %p\n ", hostKatzData->nPathsCurr);
-		// return;
-			// copyArrayDeviceToDevice(hostKatzData->nPathsCurr,hostKatzData->nPathsPrev,hostKatzData->nv, sizeof(ulong_t));
 		}else{
-			// printf("@\n");
 			hostKatzData->nPathsPrev = hPathsPtr[hostKatzData->iteration - 1];
 			hostKatzData->nPathsCurr = hPathsPtr[hostKatzData->iteration - 0];
 		}
-		// printf("prev  - %p\n ", hostKatzData->nPathsPrev);
-		// printf("curr  - %p\n ", hostKatzData->nPathsCurr);
-
 
 		hostKatzData->nActive = 0;
 		SyncDeviceWithHost();

@@ -23,8 +23,15 @@ using namespace mgpu;
 
 namespace cuStingerAlgs {
 
-void katzCentralityStreaming::setInitParameters(length_t maxIteration_, length_t K_,length_t maxDegree_){
+void katzCentralityStreaming::setInitParametersUndirected(length_t maxIteration_, length_t K_,length_t maxDegree_){
 	kcStatic.setInitParameters(maxIteration_,K_,maxDegree_,false);
+	isDirected=false;
+}
+void katzCentralityStreaming::setInitParametersDirected(length_t maxIteration_, length_t K_,length_t maxDegree_, cuStinger* invertedGraph__){
+	kcStatic.setInitParameters(maxIteration_,K_,maxDegree_,false);
+	invertedGraph=invertedGraph__;
+	isDirected=true;
+
 }
 
 
@@ -45,21 +52,13 @@ void katzCentralityStreaming::Init(cuStinger& custing){
 	cusLB = new cusLoadBalance(custing.nv+1);
 
 	hostKatzData.activeQueue.Init(custing.nv+1);
-	// hostKatzData.nextIterQueue.Init(custing.nv+1);
 	hostKatzData.activeQueue.resetQueue();
-	// hostKatzData.nextIterQueue.resetQueue();
 
 	SyncDeviceWithHost();
-
-
-	allVinG_TraverseVertices<katzCentralityOperator::printPointers>(custing,(void*)kcStatic.getDeviceKatzData());
-
 }
 
 
 void katzCentralityStreaming::runStatic(cuStinger& custing){
-	// Run(custing);
-
 
 	kcStatic.Reset();
 	kcStatic.Run(custing);
@@ -69,24 +68,18 @@ void katzCentralityStreaming::runStatic(cuStinger& custing){
 	hostKatzData.iterationStatic = hostKatzData.iteration;
 	SyncDeviceWithHost();
 
-	// allVinG_TraverseVertices<katzCentralityOperator::printPointers>(custing,(void*)kcStatic.getDeviceKatzData());
-	// allVinG_TraverseVertices<katzCentralityStreamingOperator::printPointers>(custing,deviceKatzData);
-
 	allVinG_TraverseVertices<katzCentralityStreamingOperator::initStreaming>(custing,deviceKatzData);
-
 }
 
 void katzCentralityStreaming::Release(){
 	delete cusLB;
 
 	hostKatzData.activeQueue.freeQueue();
-	// hostKatzData.nextIterQueue.freeQueue();
 	freeDeviceArray(hostKatzData.newPathsCurr);
 	freeDeviceArray(hostKatzData.newPathsPrev);
 	freeDeviceArray(hostKatzData.active);
 	freeDeviceArray(deviceKatzData);
 	kcStatic.Release();
-
 }
 
 
@@ -105,7 +98,6 @@ void katzCentralityStreaming::insertedBatchUpdate(cuStinger& custing,BatchUpdate
 	allEinA_TraverseEdges<katzCentralityStreamingOperator::setupInsertions>(custing, deviceKatzData,bu);	
 	SyncHostWithDevice();
 
-
 	hostKatzData.iteration = 2;
 	hostKatzData.nActive = hostKatzData.activeQueue.getQueueEnd();
 
@@ -115,13 +107,18 @@ void katzCentralityStreaming::insertedBatchUpdate(cuStinger& custing,BatchUpdate
 
 		allVinA_TraverseVertices<katzCentralityStreamingOperator::initActiveNewPaths>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
 
-		cout << "The size of the queue before adding variables is:" << hostKatzData.activeQueue.getQueueEnd() << endl;
-		allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::findNextActive>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);	
-		SyncHostWithDevice();
-		cout << "The size of the queue after  adding variables is:" << hostKatzData.activeQueue.getQueueEnd() << endl;
-
-		allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::updateActiveNewPaths>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);
-		SyncHostWithDevice();
+		if(!isDirected){
+			allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::findNextActive>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);	
+			SyncHostWithDevice();
+			allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::updateActiveNewPaths>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);
+			SyncHostWithDevice();
+		}
+		else{
+			allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::findNextActive>(*invertedGraph,deviceKatzData, *cusLB,hostKatzData.activeQueue);	
+			SyncHostWithDevice();
+			allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::updateActiveNewPaths>(*invertedGraph,deviceKatzData, *cusLB,hostKatzData.activeQueue);
+			SyncHostWithDevice();
+		}
 
 		allEinA_TraverseEdges<katzCentralityStreamingOperator::updateNewPathsBatch>(custing, deviceKatzData,bu);
 
@@ -139,8 +136,6 @@ void katzCentralityStreaming::insertedBatchUpdate(cuStinger& custing,BatchUpdate
 	}
 	if(hostKatzData.iteration>2)
 		allVinA_TraverseVertices<katzCentralityStreamingOperator::updateLastIteration>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
-
-
 }
 
 

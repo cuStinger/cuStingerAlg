@@ -15,21 +15,16 @@ public:
 	ulong_t*    newPathsCurr;
 	ulong_t*    newPathsPrev;
 	vertexQueue activeQueue; // Stores all the active vertices
-	// vertexQueue nextIterQueue; // Stores all the active vertices
-
 	int*		active;
 	length_t iterationStatic;
-
-
 };
 
 class katzCentralityStreaming{
 public:
-	void setInitParameters(length_t maxIteration_, length_t K_,length_t maxDegree_);
+	void setInitParametersUndirected(length_t maxIteration_, length_t K_,length_t maxDegree_);
+	void setInitParametersDirected(length_t maxIteration_, length_t K_,length_t maxDegree_,cuStinger* invertedGraph);
 
 	void Init(cuStinger& custing);
-	// virtual void Reset();
-
 	void runStatic(cuStinger& custing);
 
 	void insertedBatchUpdate(cuStinger& custing,BatchUpdate &bu);
@@ -53,13 +48,14 @@ public:
 		kcStatic.copynPathsToHost(hostArray);
 	}
 
-
-
 protected:
 	katzDataStreaming hostKatzData, *deviceKatzData;
 private:
 	cusLoadBalance* cusLB;
 	katzCentrality kcStatic;
+
+	cuStinger* invertedGraph;
+	bool isDirected;
 };
 
 
@@ -81,8 +77,6 @@ static __device__ void setupInsertions(cuStinger* custing,vertexId_t src, vertex
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 	atomicAdd(kd->KC+src, kd->alpha);
 	atomicAdd(kd->newPathsPrev+src, 1);
-	// PRINT_SRC(src, kd->newPathsPrev[src], "insert");
-	// printf("First iteration %d \n",kd->iteration);
 	vertexId_t prev = atomicCAS(kd->active+src,0,kd->iteration);
 	if(prev==0){
 		kd->activeQueue.enqueue(src);
@@ -101,12 +95,7 @@ static __device__ void findNextActive(cuStinger* custing,vertexId_t src, vertexI
 	if(prev==0){
 		kd->activeQueue.enqueue(dst);
 		kd->newPathsCurr[dst]= kd->nPaths[kd->iteration][dst];
-		// printf("$ - %d %d %d\n",src, dst,kd->active[dst]);
 	}
-	// else{
-	// 	printf("@ - %d %d %d\n",src, dst,kd->active[dst]);
-
-	// }
 }
 
 static __device__ void updateActiveNewPaths(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
@@ -115,7 +104,6 @@ static __device__ void updateActiveNewPaths(cuStinger* custing,vertexId_t src, v
 	if(kd->active[src] < kd->iteration){
 		ulong_t valToAdd = kd->newPathsPrev[src] - kd->nPaths[kd->iteration-1][src];
 		atomicAdd(kd->newPathsCurr+dst, valToAdd);
-		// printf("& - %d %d %d %d\n",src, dst,kd->active[src],kd->active[dst],kd->iteration);
 	}
 }
 
@@ -123,7 +111,6 @@ static __device__ void updateNewPathsBatch(cuStinger* custing,vertexId_t src, ve
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 	ulong_t valToAdd = kd->nPaths[kd->iteration-1][dst];
 	atomicAdd(kd->newPathsCurr+src, valToAdd);
-
 }
 
 
@@ -132,7 +119,6 @@ static __device__ void updatePrevWithCurr(cuStinger* custing,vertexId_t src, voi
 	
 	kd->KC[src] += kd->alphaI*(kd->newPathsCurr[src] - kd->nPaths[kd->iteration][src]);
 	if(kd->active[src] < kd->iteration){
-		// printf("*\n");
 		kd->nPaths[kd->iteration-1][src] = kd->newPathsPrev[src];
 	}
 	kd->newPathsPrev[src] = kd->newPathsCurr[src];
@@ -142,7 +128,6 @@ static __device__ void updateLastIteration(cuStinger* custing,vertexId_t src, vo
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 
 	if(kd->active[src] < (kd->iteration)){
-		// printf("()\n");
 		kd->nPaths[kd->iteration-1][src] = kd->newPathsPrev[src];
 	}
 }
