@@ -5,8 +5,7 @@
 
 #include "static_katz_centrality/katz.cuh"
 
-
-typedef unsigned long long int ulong_t;
+// typedef unsigned long long int ulong_t;
 
 namespace cuStingerAlgs {
 
@@ -27,10 +26,9 @@ public:
 	void Init(cuStinger& custing);
 	void runStatic(cuStinger& custing);
 
-	void insertedBatchUpdate(cuStinger& custing,BatchUpdate &bu);
-	// void deletedBatchUpdate(cuStinger& custing);
+	void batchUpdateInserted(cuStinger& custing,BatchUpdate &bu);
+	void batchUpdateDeleted(cuStinger& custing,BatchUpdate &bu);
 	void Release();
-
 
 	void SyncHostWithDevice(){
 		copyArrayDeviceToHost(deviceKatzData,&hostKatzData,1, sizeof(katzDataStreaming));
@@ -47,20 +45,17 @@ public:
 	virtual void copynPathsToHost(ulong_t* hostArray){
 		kcStatic.copynPathsToHost(hostArray);
 	}
-
 protected:
 	katzDataStreaming hostKatzData, *deviceKatzData;
 private:
+	void processUpdate(cuStinger& custing,BatchUpdate &bu, bool isInsert);
+
 	cusLoadBalance* cusLB;
 	katzCentrality kcStatic;
 
 	cuStinger* invertedGraph;
 	bool isDirected;
 };
-
-
-// #define PRINT_SRC(string, src, val) if(src <= 976047) printf ("PREV[%d] = %d   : %s\n", src, val,string);
-#define PRINT_SRC(src, val,string) if(src == 590578) printf ("PREV[%d] = %lld : %s\n", src, val,string);
 
 class katzCentralityStreamingOperator{
 public:
@@ -82,6 +77,18 @@ static __device__ void setupInsertions(cuStinger* custing,vertexId_t src, vertex
 		kd->activeQueue.enqueue(src);
 	}
 }
+
+static __device__ void setupDeletions(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
+	katzDataStreaming* kd = (katzDataStreaming*)metadata;
+	double minusAlpha = -kd->alpha;
+	atomicAdd(kd->KC+src, minusAlpha);
+	atomicAdd(kd->newPathsPrev+src, -1);
+	vertexId_t prev = atomicCAS(kd->active+src,0,kd->iteration);
+	if(prev==0){
+		kd->activeQueue.enqueue(src);
+	}
+}
+
 
 static __device__ void initActiveNewPaths(cuStinger* custing,vertexId_t src, void* metadata){
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
@@ -107,17 +114,26 @@ static __device__ void updateActiveNewPaths(cuStinger* custing,vertexId_t src, v
 	}
 }
 
-static __device__ void updateNewPathsBatch(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
+static __device__ void updateNewPathsBatchInsert(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 	ulong_t valToAdd = kd->nPaths[kd->iteration-1][dst];
 	atomicAdd(kd->newPathsCurr+src, valToAdd);
 }
 
+static __device__ void updateNewPathsBatchDelete(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
+	katzDataStreaming* kd = (katzDataStreaming*)metadata;
+	ulong_t valToRemove = -kd->nPaths[kd->iteration-1][dst];
+	atomicAdd(kd->newPathsCurr+src, valToRemove);
+}
+
 
 static __device__ void updatePrevWithCurr(cuStinger* custing,vertexId_t src, void* metadata){
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
+
+	// Note the conversion to signed long long int!! Especially important for edge deletions where this diff can be negative
+	long long int pathsDiff = kd->newPathsCurr[src] - kd->nPaths[kd->iteration][src];
 	
-	kd->KC[src] += kd->alphaI*(kd->newPathsCurr[src] - kd->nPaths[kd->iteration][src]);
+	kd->KC[src] += kd->alphaI*(pathsDiff);
 	if(kd->active[src] < kd->iteration){
 		kd->nPaths[kd->iteration-1][src] = kd->newPathsPrev[src];
 	}
@@ -136,7 +152,6 @@ static __device__ void printPointers(cuStinger* custing,vertexId_t src, void* me
 	katzDataStreaming* kd = (katzDataStreaming*)metadata;
 	if(threadIdx.x==0 && blockIdx.x==0 && src==0)
 		printf("\n# %p %p %p %p %p %p %p %p #\n",kd->nPathsData,kd->nPaths, kd->nPathsPrev, kd->nPathsCurr, kd->KC,kd->lowerBound,kd->lowerBoundSort,kd->upperBound);
-
 }
 
 

@@ -84,8 +84,6 @@ private:
 };
 
 
-
-
 class katzCentralityOperator{
 public:
 
@@ -101,16 +99,12 @@ static __device__ void init(cuStinger* custing,vertexId_t src, void* metadata){
 static __device__ void initNumPathsPerIteration(cuStinger* custing,vertexId_t src, void* metadata){
 	katzData* kd = (katzData*)metadata;
 	kd->nPathsCurr[src]=0;
-	// if(src==1)
-		// printf("vertex 1: %ld %ld \n",kd->nPathsPrev[src], kd->nPathsCurr[src]);
 }
-
 
 static __device__ void updatePathCount(cuStinger* custing,vertexId_t src, vertexId_t dst, void* metadata){
 	katzData* kd = (katzData*)metadata;
 	atomicAdd(kd->nPathsCurr+src, kd->nPathsPrev[dst]);
 }
-
 
 static __device__ void updateKatzAndBounds(cuStinger* custing,vertexId_t src, void* metadata){
 	katzData* kd = (katzData*)metadata;
@@ -122,15 +116,11 @@ static __device__ void updateKatzAndBounds(cuStinger* custing,vertexId_t src, vo
 }
 
 static __device__ void printKID(cuStinger* custing,vertexId_t src, void* metadata){
-
 	katzData* kd = (katzData*)metadata;
-	// if(kd->vertexArray[src]==kd->K)
-	// 	printf("%d\n",src);
 	if(kd->nPathsPrev[src]!=1)
 		printf("%d %ld\n ", src,kd->nPathsPrev[src]);
 	if(kd->nPathsCurr[src]!=0)
 		printf("%d %ld\n ", src,kd->nPathsCurr[src]);
-
 }
 
 static __device__ void countActive(cuStinger* custing,vertexId_t src, void* metadata){
@@ -139,7 +129,6 @@ static __device__ void countActive(cuStinger* custing,vertexId_t src, void* meta
 		atomicAdd(&(kd -> nActive),1);
 	}
 }
-
 
 static __device__ void printPointers(cuStinger* custing,vertexId_t src, void* metadata){
 	katzData* kd = (katzData*)metadata;

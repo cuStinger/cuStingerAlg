@@ -34,10 +34,9 @@ void katzCentralityStreaming::setInitParametersDirected(length_t maxIteration_, 
 
 }
 
-
 void katzCentralityStreaming::Init(cuStinger& custing){
 
-
+	// Initializing the static graph KatzCentrality data structure
 	kcStatic.Init(custing);
 
 	deviceKatzData = (katzDataStreaming*)allocDeviceArray(1, sizeof(katzDataStreaming));
@@ -60,6 +59,7 @@ void katzCentralityStreaming::Init(cuStinger& custing){
 
 void katzCentralityStreaming::runStatic(cuStinger& custing){
 
+	// Executing the static graph algorithm
 	kcStatic.Reset();
 	kcStatic.Run(custing);
 
@@ -68,6 +68,7 @@ void katzCentralityStreaming::runStatic(cuStinger& custing){
 	hostKatzData.iterationStatic = hostKatzData.iteration;
 	SyncDeviceWithHost();
 
+	// Initializing the fields of the dynamic graph algorithm
 	allVinG_TraverseVertices<katzCentralityStreamingOperator::initStreaming>(custing,deviceKatzData);
 }
 
@@ -88,14 +89,33 @@ length_t katzCentralityStreaming::getIterationCount(){
 	return hostKatzData.iteration;
 }
 
-void katzCentralityStreaming::insertedBatchUpdate(cuStinger& custing,BatchUpdate &bu){
+void katzCentralityStreaming::batchUpdateInserted(cuStinger& custing,BatchUpdate &bu){
+	processUpdate(custing,bu,true);
+}
 
+void katzCentralityStreaming::batchUpdateDeleted(cuStinger& custing,BatchUpdate &bu){
+	processUpdate(custing,bu,false);
+}
+
+
+void katzCentralityStreaming::processUpdate(cuStinger& custing,BatchUpdate &bu, bool isInsert){
+
+	// // allVinG_TraverseVertices<katzCentralityStreamingOperator::initStreaming>(custing,deviceKatzData);
+	// SyncHostWithDevice();
+
+	// Resetting the queue of the active vertices.
 	hostKatzData.activeQueue.resetQueue();
 	hostKatzData.iteration = 1;
 
 	SyncDeviceWithHost();
-
-	allEinA_TraverseEdges<katzCentralityStreamingOperator::setupInsertions>(custing, deviceKatzData,bu);	
+	
+	// Initialization of insertions or deletions is slightly different.
+	if(isInsert){
+		allEinA_TraverseEdges<katzCentralityStreamingOperator::setupInsertions>(custing, deviceKatzData,bu);
+	}else{
+		cout << "This is working " << endl;
+		allEinA_TraverseEdges<katzCentralityStreamingOperator::setupDeletions>(custing, deviceKatzData,bu);	
+	}
 	SyncHostWithDevice();
 
 	hostKatzData.iteration = 2;
@@ -107,35 +127,43 @@ void katzCentralityStreaming::insertedBatchUpdate(cuStinger& custing,BatchUpdate
 
 		allVinA_TraverseVertices<katzCentralityStreamingOperator::initActiveNewPaths>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
 
+		// Undirected graphs and directed graphs need to be dealt with differently.
 		if(!isDirected){
 			allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::findNextActive>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);	
-			SyncHostWithDevice();
+			SyncHostWithDevice(); // Syncing queue info
 			allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::updateActiveNewPaths>(custing,deviceKatzData, *cusLB,hostKatzData.activeQueue);
-			SyncHostWithDevice();
 		}
 		else{
 			allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::findNextActive>(*invertedGraph,deviceKatzData, *cusLB,hostKatzData.activeQueue);	
-			SyncHostWithDevice();
+			SyncHostWithDevice(); // Syncing queue info
 			allVinA_TraverseEdges_LB<katzCentralityStreamingOperator::updateActiveNewPaths>(*invertedGraph,deviceKatzData, *cusLB,hostKatzData.activeQueue);
-			SyncHostWithDevice();
 		}
+		SyncHostWithDevice(); // Syncing queue info
 
-		allEinA_TraverseEdges<katzCentralityStreamingOperator::updateNewPathsBatch>(custing, deviceKatzData,bu);
-
+		// Checking if we are dealing with a batch of insertions or deletions.
+		if(isInsert){
+			allEinA_TraverseEdges<katzCentralityStreamingOperator::updateNewPathsBatchInsert>(custing, deviceKatzData,bu);
+		}else{
+			allEinA_TraverseEdges<katzCentralityStreamingOperator::updateNewPathsBatchDelete>(custing, deviceKatzData,bu);
+		}
 		SyncHostWithDevice();
+
 		hostKatzData.nActive = hostKatzData.activeQueue.getQueueEnd();
 		SyncDeviceWithHost();
-
 		allVinA_TraverseVertices<katzCentralityStreamingOperator::updatePrevWithCurr>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
-
 		SyncHostWithDevice();
 
 		hostKatzData.iteration++;
 
-		SyncDeviceWithHost();
 	}
-	if(hostKatzData.iteration>2)
+	if(hostKatzData.iteration>2){
+		SyncDeviceWithHost();		
 		allVinA_TraverseVertices<katzCentralityStreamingOperator::updateLastIteration>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
+		SyncHostWithDevice();
+	}
+	// Resetting the fields of the dynamic graph algorithm for all the vertices that were active 
+	allVinA_TraverseVertices<katzCentralityStreamingOperator::initStreaming>(custing, deviceKatzData, hostKatzData.activeQueue.getQueue(), hostKatzData.nActive);
+
 }
 
 

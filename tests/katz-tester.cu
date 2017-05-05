@@ -32,12 +32,14 @@ using namespace cuStingerAlgs;
 void generateEdgeUpdates(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst){
 	for(int32_t e=0; e<numEdges; e++){
 		edgeSrc[e] = rand()%nv;
+		// edgeSrc[e] = 0;
 		edgeDst[e] = rand()%nv;
 		// printf("Batch update: (#%d) (%d %d)\n", e,edgeSrc[e],edgeDst[e]);
 	}
 }
 void generateEdgeUpdatesInverted(length_t nv, length_t numEdges, vertexId_t* edgeSrc, vertexId_t* edgeDst){
 	for(int32_t e=0; e<numEdges; e++){
+		// edgeDst[e] = 0;
 		edgeDst[e] = rand()%nv;
 		edgeSrc[e] = rand()%nv;
 		// printf("Batch update: (#%d) (%d %d)\n", e,edgeSrc[e],edgeDst[e]);
@@ -138,6 +140,10 @@ int main(const int argc, char *argv[]){
 		cout << "Unknown graph type" << endl;
 	}
 
+	int maxIterations=20;
+	int topK=100;
+	int numBatchEdges=atoi(argv[2]);
+
 	cout << "Vertices: " << nv << "    Edges: " << ne << endl;
 
     length_t *offInvert;
@@ -185,11 +191,7 @@ int main(const int argc, char *argv[]){
 		custingInv.initializeCuStinger(cuInitInv);
 
 		float totalTime;
-
 		katzCentralityStreaming kcs;
-		int maxIterations=20;
-		int topK=100;
-		int numBatchEdges=100;
 
 		if(isDirected)
 			kcs.setInitParametersDirected(maxIterations,topK,maxLen,&custingInv);
@@ -201,8 +203,8 @@ int main(const int argc, char *argv[]){
 		kcs.runStatic(custing);
 		totalTime = end_clock(ce_start, ce_stop);
 		cout << "The number of iterations      : " << kcs.getIterationCount() << endl;
-		cout << "Total time for KC             : " << totalTime << endl; 
-		cout << "Average time per iteartion    : " << totalTime/(float)kcs.getIterationCount() << endl; 
+		cout << "Total time for KC             : " << totalTime << endl;
+		cout << "Average time per iteartion    : " << totalTime/(float)kcs.getIterationCount() << endl;
 
 		BatchUpdateData *bud, *budInverted;
 		srand (1);
@@ -229,6 +231,32 @@ int main(const int argc, char *argv[]){
 			delete buInv;
 		}
 
+
+		start_clock(ce_start, ce_stop);
+		kcs.batchUpdateInserted(custing,*bu);
+		totalTime = end_clock(ce_start, ce_stop);
+
+		cout << "Insertions:"						  << endl;
+		cout << "The number of iterations   (dyn.): " << kcs.getIterationCount() << endl;
+		cout << "Total time for KC          (dyn.): " << totalTime << endl; 
+		cout << "Average time per iteartion (dyn.): " << totalTime/(float)kcs.getIterationCount() << endl; 
+
+		custing.edgeDeletions(*bu);
+		if(isDirected){
+			BatchUpdate* buInv = new BatchUpdate(*budInverted);
+			custingInv.edgeDeletions(*buInv);
+			delete buInv;
+		}
+
+		start_clock(ce_start, ce_stop);
+		kcs.batchUpdateDeleted(custing,*bu);
+		totalTime = end_clock(ce_start, ce_stop);
+
+		cout << "Deletions:"						  << endl;
+		cout << "The number of iterations   (dyn.): " << kcs.getIterationCount() << endl;
+		cout << "Total time for KC          (dyn.): " << totalTime << endl; 
+		cout << "Average time per iteartion (dyn.): " << totalTime/(float)kcs.getIterationCount() << endl; 
+
 		katzCentrality kcPostUpdate;	
 		kcPostUpdate.setInitParameters(maxIterations,topK,maxLen,false);
 		kcPostUpdate.Init(custing);
@@ -237,12 +265,10 @@ int main(const int argc, char *argv[]){
 		kcPostUpdate.Run(custing);
 		totalTime = end_clock(ce_start, ce_stop);
 		cout << "The number of iterations      : " << kcPostUpdate.getIterationCount() << endl;
-		// cout << "Total time for KC             : " << totalTime << endl; 
-		// cout << "Average time per iteartion    : " << totalTime/(float)kcPostUpdate.getIterationCount() << endl; 
+		cout << "Total time for KC             : " << totalTime << endl; 
+		cout << "Average time per iteartion    : " << totalTime/(float)kcPostUpdate.getIterationCount() << endl; 
 
-		start_clock(ce_start, ce_stop);
-		kcs.insertedBatchUpdate(custing,*bu);
-		totalTime = end_clock(ce_start, ce_stop);
+
 
 		double* kcScoresStreaming  = (double*) allocHostArray(custing.nv, sizeof(double));
 		double* kcScoresPostUpdate = (double*) allocHostArray(custing.nv, sizeof(double));
@@ -263,17 +289,13 @@ int main(const int argc, char *argv[]){
 		}
 		printf("\nSum of difference %4.11lf \n", sum);
 
-		for (int iter=0; iter<kcs.getIterationCount(); iter++)
-		{
+		for (int iter=0; iter<kcs.getIterationCount(); iter++){
 			for(int v=0; v < custing.nv; v++){
 				ulong_t *nPathsStream = nPathsStreaming + custing.nv*iter,*nPathsStatic = nPathsPostUpdate + custing.nv*iter;
 				ulong_t *nPathsStreamNext = nPathsStreaming + custing.nv*(iter+1),*nPathsStaticNext = nPathsPostUpdate + custing.nv*(iter+1);
 				if (nPathsStream[v]!=nPathsStatic[v])
 					printf("^^^^^^ %d, %d, %lld, %lld   \n",iter, v,nPathsStream[v],nPathsStatic[v]);
-
 			}
-
-
 		}
 
 		if(isDirected)
