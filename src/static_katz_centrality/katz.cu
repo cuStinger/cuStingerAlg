@@ -70,11 +70,14 @@ void katzCentrality::Init(cuStinger& custing){
 		copyArrayHostToDevice(hPathsPtr,hostKatzData->nPaths,hostKatzData->maxIteration,sizeof(double));
 	}
 
-	hostKatzData->vertexArray = (vertexId_t*) allocDeviceArray(hostKatzData->nv, sizeof(vertexId_t));
 	hostKatzData->KC         = (double*) allocDeviceArray(hostKatzData->nv, sizeof(double));
 	hostKatzData->lowerBound = (double*) allocDeviceArray(hostKatzData->nv, sizeof(double));
-	hostKatzData->lowerBoundSort = (double*) allocDeviceArray(hostKatzData->nv, sizeof(double));
 	hostKatzData->upperBound = (double*) allocDeviceArray(hostKatzData->nv, sizeof(double));
+
+	hostKatzData->isActive 		 = (bool*) allocDeviceArray(hostKatzData->nv, sizeof(bool));
+	hostKatzData->indexArray	 =  (vertexId_t*) allocDeviceArray(hostKatzData->nv, sizeof(vertexId_t));
+	hostKatzData->vertexArray	 =  (vertexId_t*) allocDeviceArray(hostKatzData->nv, sizeof(vertexId_t));
+	hostKatzData->lowerBoundSort = (double*) allocDeviceArray(hostKatzData->nv, sizeof(double));
 
 	deviceKatzData = NULL;
 
@@ -133,8 +136,9 @@ void katzCentrality::Run(cuStinger& custing){
 		hostKatzData->alphaI          = pow(hostKatzData->alpha,hostKatzData->iteration);
 		hostKatzData->lowerBoundConst = pow(hostKatzData->alpha,hostKatzData->iteration+1)/((1.0-hostKatzData->alpha));
 		hostKatzData->upperBoundConst = pow(hostKatzData->alpha,hostKatzData->iteration+1)/((1.0-hostKatzData->alpha*(double)hostKatzData->maxDegree));
-
-		SyncDeviceWithHost();
+		hostKatzData->nActive = 0; // Each iteration the number of active vertices is set to zero.
+	
+		SyncDeviceWithHost(); // Passing constants to the device.
 
 		allVinG_TraverseVertices<katzCentralityOperator::initNumPathsPerIteration>(custing,deviceKatzData);
 		allVinA_TraverseEdges_LB<katzCentralityOperator::updatePathCount>(custing,deviceKatzData,*cusLB);
@@ -151,12 +155,16 @@ void katzCentrality::Run(cuStinger& custing){
 			hostKatzData->nPathsCurr = hPathsPtr[hostKatzData->iteration - 0];
 		}
 
-		hostKatzData->nActive = 0;
+		length_t oldActiveCount = hostKatzData->nActive;
+		hostKatzData->nActive = 0; // Resetting active vertices for sorting operations.
+
 		SyncDeviceWithHost();
 
-		mergesort(hostKatzData->lowerBoundSort,hostKatzData->vertexArray,custing.nv, greater_t<double>(),context);
+		mergesort(hostKatzData->lowerBoundSort,hostKatzData->vertexArray,oldActiveCount, greater_t<double>(),context);
 
-		allVinG_TraverseVertices<katzCentralityOperator::countActive>(custing,deviceKatzData);
+		// allVinG_TraverseVertices<katzCentralityOperator::countActive>(custing,deviceKatzData);
+		allVinA_TraverseVertices<katzCentralityOperator::countActive>(custing,deviceKatzData,hostKatzData->vertexArray,oldActiveCount);
+
 		//allVinA_TraverseVertices<katzCentralityOperator::printKID>(custing,deviceKatzData,hostKatzData->vertexArray, custing.nv);
 
 
@@ -184,7 +192,7 @@ void katzCentrality::Run(cuStinger& custing){
 	freeHostArray(upperBound);
 */		
 		SyncHostWithDevice();
-		// cout << hostKatzData->nActive << endl;
+		cout << hostKatzData->nActive << endl;
 	}
 	// cout << "@@ " << hostKatzData->iteration << " @@" << endl;
 	SyncHostWithDevice();

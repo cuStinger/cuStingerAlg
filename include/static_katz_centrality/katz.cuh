@@ -20,10 +20,8 @@ public:
 
 	double*     KC;
 	double*     lowerBound;
-	double*     lowerBoundSort;
 	double*     upperBound;
 
-	vertexId_t*     vertexArray; // Sorting
 
 	// vertexQueue queue; // Stores all the active vertices
 	double alpha;
@@ -40,6 +38,12 @@ public:
 	// number of active vertices at each iteration
 	length_t nActive;
 	length_t nv;
+
+	bool* isActive;
+	double*     	lowerBoundSort;
+	vertexId_t*     vertexArray; // Sorting
+	vertexId_t*     indexArray; // Sorting
+
 };
 
 // Label propogation is based on the values from the previous iteration.
@@ -93,6 +97,8 @@ static __device__ void init(cuStinger* custing,vertexId_t src, void* metadata){
 	kd->nPathsPrev[src]=1;
 	kd->nPathsCurr[src]=0;
 	kd->KC[src]=0.0;
+	kd->isActive[src]=true;
+	kd->indexArray[src]=src;
 }
 
 // Used every iteration
@@ -111,22 +117,29 @@ static __device__ void updateKatzAndBounds(cuStinger* custing,vertexId_t src, vo
 	kd->KC[src]=kd->KC[src] + kd->alphaI * (double)kd->nPathsCurr[src];
 	kd->lowerBound[src]=kd->KC[src] + kd->lowerBoundConst * (double)kd->nPathsCurr[src];
 	kd->upperBound[src]=kd->KC[src] + kd->upperBoundConst * (double)kd->nPathsCurr[src];   
-	kd->lowerBoundSort[src]=kd->lowerBound[src];
-	kd->vertexArray[src]=src;
+
+	if(kd->isActive[src]){
+		length_t pos = atomicAdd(&(kd -> nActive),1);
+		kd->vertexArray[pos] = src;
+		kd->lowerBoundSort[pos]=kd->lowerBound[src];
+	}
 }
 
-static __device__ void printKID(cuStinger* custing,vertexId_t src, void* metadata){
-	katzData* kd = (katzData*)metadata;
-	if(kd->nPathsPrev[src]!=1)
-		printf("%d %ld\n ", src,kd->nPathsPrev[src]);
-	if(kd->nPathsCurr[src]!=0)
-		printf("%d %ld\n ", src,kd->nPathsCurr[src]);
-}
+
+// static __device__ void createSortArrays(cuStinger* custing,vertexId_t src, void* metadata){
+// 	katzData* kd = (katzData*)metadata;
+// 	kd->lowerBoundSort[src]=kd->lowerBound[src];
+// 	kd->vertexArray[src]=src;
+// }
+
 
 static __device__ void countActive(cuStinger* custing,vertexId_t src, void* metadata){
 	katzData* kd = (katzData*)metadata;
-		if (kd->upperBound[src] > kd->lowerBound[kd->vertexArray[kd->K-1]]) {
+	if (kd->upperBound[src] > kd->lowerBound[kd->vertexArray[kd->K-1]]) {
 		atomicAdd(&(kd -> nActive),1);
+	}
+	else{
+		kd->isActive[src] = false;
 	}
 }
 
@@ -136,6 +149,13 @@ static __device__ void printPointers(cuStinger* custing,vertexId_t src, void* me
 		printf("\n@ %p %p %p %p %p %p %p %p @\n",kd->nPathsData,kd->nPaths, kd->nPathsPrev, kd->nPathsCurr, kd->KC,kd->lowerBound,kd->lowerBoundSort,kd->upperBound);
 }
 
+static __device__ void printKID(cuStinger* custing,vertexId_t src, void* metadata){
+	katzData* kd = (katzData*)metadata;
+	if(kd->nPathsPrev[src]!=1)
+		printf("%d %ld\n ", src,kd->nPathsPrev[src]);
+	if(kd->nPathsCurr[src]!=0)
+		printf("%d %ld\n ", src,kd->nPathsCurr[src]);
+}
 
 
 };
