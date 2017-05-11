@@ -65,6 +65,8 @@ cuda_add_library(custingerAlgs
           src/static_connected_components/cc_baseline.cu
           src/static_connected_components/cc_concurrent.cu
           src/static_connected_components/cc_load_balanced.cu
+          src/static_katz_centrality/katz.cu
+          src/streaming_katz_centrality/katz.cu
           # src/streaming_triangle_counting/cct_upd.cu
           src/static_page_rank/pr.cu              
           src/load_balance.cu
@@ -94,9 +96,14 @@ cuda_add_executable(cus-alg-tester
           )
 
 
-TARGET_LINK_LIBRARIES(static_bc_tester custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
+cuda_add_executable(katz-tester 
+          tests/katz-tester.cu
+           )
 
+TARGET_LINK_LIBRARIES(static_bc_tester custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 TARGET_LINK_LIBRARIES(cuAlgCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 TARGET_LINK_LIBRARIES(cuAlgStCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
 
 TARGET_LINK_LIBRARIES(cus-alg-tester custingerAlgs custinger /usr/local/cuda/lib64/libcudart.so)
+
+TARGET_LINK_LIBRARIES(katz-tester custingerAlgs custinger /usr/local/cuda/lib64/libcudart.so)
