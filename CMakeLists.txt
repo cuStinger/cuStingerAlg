@@ -5,7 +5,7 @@ FIND_PACKAGE(CUDA REQUIRED)
 
 INCLUDE(FindCUDA)
 
-INCLUDE_DIRECTORIES(/usr/local/cuda/include)
+INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(include)
 # INCLUDE_DIRECTORIES(include/static_triangle_counting)
 
@@ -100,10 +100,10 @@ cuda_add_executable(katz-tester
           tests/katz-tester.cu
            )
 
-TARGET_LINK_LIBRARIES(static_bc_tester custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
-TARGET_LINK_LIBRARIES(cuAlgCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
-TARGET_LINK_LIBRARIES(cuAlgStCCT custingerAlgs custinger  /usr/local/cuda/lib64/libcudart.so)
+TARGET_LINK_LIBRARIES(static_bc_tester custingerAlgs custinger  ${CUDA_LIBRARIES})
+TARGET_LINK_LIBRARIES(cuAlgCCT custingerAlgs custinger  ${CUDA_LIBRARIES})
+TARGET_LINK_LIBRARIES(cuAlgStCCT custingerAlgs custinger  ${CUDA_LIBRARIES})
 
-TARGET_LINK_LIBRARIES(cus-alg-tester custingerAlgs custinger /usr/local/cuda/lib64/libcudart.so)
+TARGET_LINK_LIBRARIES(cus-alg-tester custingerAlgs custinger ${CUDA_LIBRARIES})
 
-#TARGET_LINK_LIBRARIES(katz-tester custingerAlgs custinger /usr/local/cuda/lib64/libcudart.so)
+#TARGET_LINK_LIBRARIES(katz-tester custingerAlgs custinger ${CUDA_LIBRARIES})
